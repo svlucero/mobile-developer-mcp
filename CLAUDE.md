@@ -30,3 +30,6 @@ added by later issues.
   errors; never put secrets in protocol output or logs.
 - Provider integrations remain separate and optional: configuring one does not
   require the other.
+- App Store Connect tokens are signed locally with ES256 keys; never return a
+  key, JWT, authorization header, or signed Analytics download URL. Apple tools
+  perform GET requests only, including existing Analytics resources.

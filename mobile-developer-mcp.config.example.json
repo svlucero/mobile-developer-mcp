@@ -8,7 +8,8 @@
         "reportingBucket": "pubsite_prod_rev_0123456789"
       },
       "appStore": {
-        "appId": "1234567890"
+        "appId": "1234567890",
+        "vendorNumber": "12345678"
       }
     }
   ]

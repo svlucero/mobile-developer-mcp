@@ -55,6 +55,16 @@ Ejemplo de cliente MCP:
   CSV existentes de `stats/installs` en el bucket privado configurado. Devuelve
   observaciones diarias con el nombre exacto de la columna, unidad, fuente,
   período y dimensiones; nunca suma métricas de stock como instalaciones nuevas.
+- `mobile_developer_app_store_versions`, `_builds` y `_reviews`: consultan
+  versiones, builds/estado y customer reviews de App Store Connect con filtros
+  y paginación acotada.
+- `mobile_developer_app_store_diagnostic_signatures`: consulta diagnósticos
+  disponibles por build; no es un inventario completo de crashes de producción.
+- `mobile_developer_app_store_sales_downloads`: lee un reporte diario existente
+  de Sales and Trends, solo para filas de apps (excluye compras internas).
+- `mobile_developer_app_store_analytics_existing`: inspecciona solicitudes,
+  instancias y segmentos Analytics existentes; nunca crea/reanuda reportes ni
+  revela URLs firmadas de descarga.
 
 Las futuras herramientas comparten contratos para `source`, `period` (`start`
 y `end` ISO), `unit`, límites y paginación. Los errores de dominio son
@@ -72,6 +82,14 @@ gzip y CSV UTF-8/UTF-16 con BOM se aceptan hasta 5 MiB por objeto; se leen como
 máximo 13 objetos mensuales. El servidor reserva stdout para JSON-RPC/MCP. Cualquier diagnóstico va a
 stderr. No existen herramientas de publicación, edición de tracks, respuestas
 a reviews ni generación de reportes.
+
+App Store Connect usa un JWT ES256 firmado localmente con
+`APP_STORE_CONNECT_KEY_PATH`, `APP_STORE_CONNECT_KEY_ID` y
+`APP_STORE_CONNECT_ISSUER_ID`. Puede configurar los tríos `..._SALES_*` o
+`..._ANALYTICS_*` cuando los permisos estén en roles distintos; campos ausentes
+heredan la credencial principal. Sales and Trends requiere `vendorNumber` por
+app. Descargas mayores de 5 MiB se rechazan; informes ausentes, permisos,
+latencia de publicación o privacidad no se representan como cero.
 
 ## Desarrollo
 
