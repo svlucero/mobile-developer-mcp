@@ -1,0 +1,14 @@
+{
+  "apps": [
+    {
+      "id": "my-mobile-app",
+      "googlePlay": {
+        "packageName": "com.example.app",
+        "tracks": ["production", "beta"]
+      },
+      "appStore": {
+        "appId": "1234567890"
+      }
+    }
+  ]
+}
