@@ -21,6 +21,11 @@ las consultas por proveedor se incorporan después.
   y un lector de CSV de instalaciones de objetos existentes de GCS. Decodifica
   gzip y UTF-16/UTF-8, limita cada descarga a 5 MiB y no agrega observaciones
   diarias de stock como si fueran flujos.
+- `app-store.ts` firma JWT ES256 localmente con una clave `.p8` y realiza GET a
+  versiones, builds, customer reviews, diagnostic signatures, Sales and Trends
+  y recursos Analytics existentes. Admite credenciales distintas para Sales o
+  Analytics, limita informes gzip/TSV a 5 MiB y nunca devuelve JWT, clave ni URL
+  firmada.
 - Los adaptadores son opcionales e independientes: una configuración válida de
   un proveedor no exige credenciales del otro. El entorno inyectado al servidor
   se propaga a los adaptadores para informar estado sin revelar secretos.
@@ -36,5 +41,7 @@ listado y llamada MCP reales por stdio.
 - Releases usa la ruta directa de tracks, sin edits; reviews devuelve solo
   `userComment` y no respuestas del desarrollador.
 - Conservar fuente, período, unidad, límites y paginación en los contratos.
+- Analytics no crea ni reanuda solicitudes de generación; si no hay instancias
+  o segmentos, el usuario debe preparar el reporte en App Store Connect.
 
 Ver [convenciones](coding_standards.md) y [contratos](api_contracts.md).

@@ -20,6 +20,10 @@
   `NOT_FOUND` o `PROVIDER` al convertir fallos de dominio a una respuesta MCP.
 - La configuración se lee desde la ruta en `MOBILE_DEVELOPER_MCP_CONFIG_PATH`;
   ejemplos sí se versionan, archivos reales y claves no.
+- Para App Store Connect, usar JWT ES256 de duración corta firmado desde una
+  ruta local. Mantener GET, limitar informes a 5 MiB y omitir URLs de segmentos
+  Analytics. Datos no disponibles no son cero; diagnostic signatures no son un
+  listado completo de crashes.
 
 Las pruebas deben incluir protocolo stdio, validación, redacción de secretos,
 errores estructurados, métodos/rutas salientes y fixtures opcionales. `npm test`

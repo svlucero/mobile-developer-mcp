@@ -54,6 +54,33 @@ Los fallos usarán categorías sanitizadas: `CONFIGURATION`, `AUTHORIZATION`,
 - App Store Connect: configuración por App Store app ID; credenciales locales
   opcionales para el adaptador de Apple.
 
+## App Store Connect implementado
+
+La credencial principal usa `APP_STORE_CONNECT_KEY_PATH`, `_KEY_ID` e
+`_ISSUER_ID`; los prefijos `APP_STORE_CONNECT_SALES_` y
+`APP_STORE_CONNECT_ANALYTICS_` permiten roles separados y heredan los valores
+principales faltantes. El adaptador firma JWT `ES256` local de corta duración y
+ejecuta únicamente GET.
+
+- `mobile_developer_app_store_versions`, `_builds` y `_reviews` reciben el
+  `appId` local, límite 1–100, cursor y filtro opcional; reviews no incluye
+  respuestas. El cursor siguiente no se recorre automáticamente.
+- `mobile_developer_app_store_diagnostic_signatures` recibe `buildId` y
+  paginación. Son diagnósticos disponibles por build, no todos los crashes de
+  producción.
+- `mobile_developer_app_store_sales_downloads` requiere fecha y `vendorNumber`,
+  lee Sales/Summary diario y conserva fuente, período y dimensiones. Solo toma
+  `Product Type Identifier` `1` (apps), excluyendo IAP. Separa iniciales y
+  redescargas solo si existe `Order Type`; si no, devuelve `downloads`.
+- `mobile_developer_app_store_analytics_existing` lee solicitudes, reportes,
+  instancias y segmentos ya existentes. Nunca crea/reanuda informes ni devuelve
+  URLs firmadas. Sin recursos puede requerir preparación manual, permisos o
+  esperar disponibilidad/privacidad; no devuelve cero.
+
+Sales y Analytics pueden tener latencia, privacidad o roles distintos. Informes
+mayores de 5 MiB se rechazan. 401/403 son `AUTHORIZATION`, 404 es `NOT_FOUND`;
+el resto de fallos y límites son `PROVIDER`.
+
 Los recursos de negocio implementados conservan el alcance de solo lectura;
 las capacidades posteriores siguen usando estos contratos.
 
