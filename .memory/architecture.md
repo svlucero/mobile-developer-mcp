@@ -15,9 +15,11 @@ las consultas por proveedor se incorporan después.
 - `src/contracts.ts`, `src/config.ts` y `src/errors.ts` establecen contratos,
   carga validada/redactada de configuración y errores de dominio sanitizados.
 - `src/providers/` contiene adaptadores independientes de Google Play y App
-  Store Connect; todavía no realizan llamadas a tiendas.
+  Store Connect. `google-play.ts` usa ADC o una cuenta de servicio local y hace
+  únicamente GETs al API de Android Publisher.
 - Los adaptadores son opcionales e independientes: una configuración válida de
-  un proveedor no exige credenciales del otro.
+  un proveedor no exige credenciales del otro. El entorno inyectado al servidor
+  se propaga a los adaptadores para informar estado sin revelar secretos.
 
 Las pruebas de `test/` cubren carga de configuración, redacción y handshake,
 listado y llamada MCP reales por stdio.
@@ -26,6 +28,8 @@ listado y llamada MCP reales por stdio.
 
 - Solo lectura de recursos de negocio; autenticación puede intercambiar tokens.
 - No publicar releases, editar tracks, responder reviews ni generar reportes.
+- Releases usa la ruta directa de tracks, sin edits; reviews devuelve solo
+  `userComment` y no respuestas del desarrollador.
 - Conservar fuente, período, unidad, límites y paginación en los contratos.
 
 Ver [convenciones](coding_standards.md) y [contratos](api_contracts.md).
