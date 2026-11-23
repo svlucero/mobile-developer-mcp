@@ -7,7 +7,8 @@ const appSchema = z.object({
   id: z.string().min(1).max(100).regex(/^[a-z0-9][a-z0-9-]*$/),
   googlePlay: z.object({
     packageName: z.string().min(3).max(255),
-    tracks: z.array(z.string().min(1).max(100)).min(1).max(20)
+    tracks: z.array(z.string().min(1).max(100)).min(1).max(20),
+    reportingBucket: z.string().min(3).max(222).regex(/^[a-z0-9][a-z0-9._-]*[a-z0-9]$/).optional()
   }).optional(),
   appStore: z.object({
     appId: z.string().regex(/^\d+$/)

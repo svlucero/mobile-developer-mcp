@@ -48,6 +48,13 @@ Ejemplo de cliente MCP:
   versión cuando existen, con cursor, tamaño de página (1–100) e idioma de
   traducción opcional. Solo están disponibles comentarios creados o modificados
   durante la última semana; las respuestas del desarrollador nunca se exponen.
+- `mobile_developer_google_play_vital_issues`: consulta por GET los issues
+  agrupados de crashes/ANR de Android vitals, con período UTC alineado a la hora,
+  filtros opcionales por `versionCodes` y `types`, y cursor/límite acotados.
+- `mobile_developer_google_play_installation_metrics`: lee únicamente objetos
+  CSV existentes de `stats/installs` en el bucket privado configurado. Devuelve
+  observaciones diarias con el nombre exacto de la columna, unidad, fuente,
+  período y dimensiones; nunca suma métricas de stock como instalaciones nuevas.
 
 Las futuras herramientas comparten contratos para `source`, `period` (`start`
 y `end` ISO), `unit`, límites y paginación. Los errores de dominio son
@@ -55,8 +62,14 @@ estructurados y usan `CONFIGURATION`, `AUTHORIZATION`, `NOT_FOUND` o
 `PROVIDER`; los detalles sensibles se redactan.
 
 Google Play usa ADC o una cuenta de servicio indicada por
-`GOOGLE_APPLICATION_CREDENTIALS`, con el scope `androidpublisher`; la cuenta
-necesita permiso **Reply to reviews** para consultar reviews. El servidor reserva stdout para JSON-RPC/MCP. Cualquier diagnóstico va a
+`GOOGLE_APPLICATION_CREDENTIALS`, con scopes separados por recurso:
+`androidpublisher`, `playdeveloperreporting` y, para reportes privados,
+`devstorage.read_only`. La cuenta necesita permiso **Reply to reviews** para
+consultar reviews, acceso de lectura adecuado a Android vitals y acceso de
+lector de objetos al bucket privado. Los reportes ausentes, permisos insuficientes
+y desfases de publicación no se convierten en ceros. Los archivos comprimidos
+gzip y CSV UTF-8/UTF-16 con BOM se aceptan hasta 5 MiB por objeto; se leen como
+máximo 13 objetos mensuales. El servidor reserva stdout para JSON-RPC/MCP. Cualquier diagnóstico va a
 stderr. No existen herramientas de publicación, edición de tracks, respuestas
 a reviews ni generación de reportes.
 
