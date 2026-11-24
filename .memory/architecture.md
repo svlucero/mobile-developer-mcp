@@ -29,9 +29,13 @@ las consultas por proveedor se incorporan después.
 - Los adaptadores son opcionales e independientes: una configuración válida de
   un proveedor no exige credenciales del otro. El entorno inyectado al servidor
   se propaga a los adaptadores para informar estado sin revelar secretos.
+- Las pruebas de stdio pueden precargar un `fetch` de fixture en el proceso hijo:
+  ejercitan herramientas Google y Apple por el protocolo sin tráfico ni
+  credenciales reales. Google también admite un token OAuth local de corta vida
+  (`GOOGLE_OAUTH_ACCESS_TOKEN`) como alternativa a ADC.
 
-Las pruebas de `test/` cubren carga de configuración, redacción y handshake,
-listado y llamada MCP reales por stdio.
+Las pruebas de `test/` cubren carga de configuración, redacción, handshake y
+llamadas MCP reales por stdio con fixtures de ambos proveedores.
 
 ## Límites
 

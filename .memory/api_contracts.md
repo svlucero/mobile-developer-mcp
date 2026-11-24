@@ -47,7 +47,8 @@ Los fallos usarán categorías sanitizadas: `CONFIGURATION`, `AUTHORIZATION`,
 ## Proveedores previstos
 
 - Google Play: configuración por `packageName` y tracks; autenticación local
-  mediante ADC o `GOOGLE_APPLICATION_CREDENTIALS`, con scopes separados
+  mediante ADC, `GOOGLE_APPLICATION_CREDENTIALS` o un token OAuth local de
+  corta vida (`GOOGLE_OAUTH_ACCESS_TOKEN`), con scopes separados
   `androidpublisher`, `playdeveloperreporting` y `devstorage.read_only`.
   Consultar reviews requiere el permiso de Play Console "Reply to reviews".
   Estos endpoints son solo GET y no crean edits.
@@ -83,5 +84,13 @@ el resto de fallos y límites son `PROVIDER`.
 
 Los recursos de negocio implementados conservan el alcance de solo lectura;
 las capacidades posteriores siguen usando estos contratos.
+
+## Garantías verificadas de V1
+
+Todos los adaptadores de proveedores emiten `GET`; no existen rutas de negocio
+POST/PUT/PATCH/DELETE. La integración stdio usa respuestas de fixture de Google
+y Apple y rechaza cualquier método distinto de GET. Esto verifica el protocolo,
+normalización y no filtrado de secretos, pero no acredita que una cuenta real
+tenga roles, bucket o reportes disponibles.
 
 Ver [arquitectura](architecture.md) y [convenciones](coding_standards.md).
