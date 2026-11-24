@@ -25,6 +25,20 @@ async function connect(environment: Record<string, string>): Promise<Client> {
   return client;
 }
 
+async function connectWithProviderFixtures(environment: Record<string, string>): Promise<Client> {
+  const client = new Client({ name: 'provider-fixture-integration-test', version: '1.0.0' });
+  const transport = new StdioClientTransport({
+    command: process.execPath,
+    args: ['--import', join(process.cwd(), 'test/stdio-fixture-fetch.mjs'), join(process.cwd(), 'dist/index.js')],
+    cwd: process.cwd(),
+    env: { ...process.env, ...environment },
+    stderr: 'pipe'
+  });
+  await client.connect(transport);
+  clients.push(client);
+  return client;
+}
+
 describe('stdio MCP server', () => {
   it('completes handshake, lists tools, and returns configured apps', async () => {
     const directory = mkdtempSync(join(tmpdir(), 'mobile-developer-mcp-'));
@@ -62,5 +76,36 @@ describe('stdio MCP server', () => {
     const result = await client.callTool({ name: 'mobile_developer_provider_status', arguments: {} });
     expect(result.isError).not.toBe(true);
     expect(JSON.stringify(result)).toContain('"provider":"google-play","credentialsConfigured":true');
+  });
+
+  it('calls Google Play and App Store tools over stdio using GET-only provider fixtures', async () => {
+    const directory = mkdtempSync(join(tmpdir(), 'mobile-developer-mcp-'));
+    const configPath = join(directory, 'config.json');
+    const keyPath = join(directory, 'fixture-key.p8');
+    writeFileSync(keyPath, `-----BEGIN EC PRIVATE KEY-----
+MHcCAQEEIGul4YEmRvdRZxxnt9jTjTfzBj36LJfNdv1Hs9ptRWAOoAoGCCqGSM49
+AwEHoUQDQgAEciHMjmuhiVWjNnk8i4E+81mqIbdnqDb+Yn6horjIn9kfFfZV02m6
+kTP4atFEHnnOtGLo6i2ZEoVKMDaOlspi3w==
+-----END EC PRIVATE KEY-----`);
+    writeFileSync(configPath, JSON.stringify({ apps: [{
+      id: 'fixture-app',
+      googlePlay: { packageName: 'com.example.fixture', tracks: ['production'] },
+      appStore: { appId: '1234567890' }
+    }] }));
+    const client = await connectWithProviderFixtures({
+      MOBILE_DEVELOPER_MCP_CONFIG_PATH: configPath,
+      GOOGLE_OAUTH_ACCESS_TOKEN: 'fixture-token-not-a-secret',
+      APP_STORE_CONNECT_KEY_PATH: keyPath,
+      APP_STORE_CONNECT_KEY_ID: 'FIXTUREKEY',
+      APP_STORE_CONNECT_ISSUER_ID: 'fixture-issuer'
+    });
+
+    const google = await client.callTool({ name: 'mobile_developer_google_play_releases', arguments: { appId: 'fixture-app', track: 'production' } });
+    const apple = await client.callTool({ name: 'mobile_developer_app_store_versions', arguments: { appId: 'fixture-app' } });
+    expect(google.isError).not.toBe(true);
+    expect(apple.isError).not.toBe(true);
+    expect(JSON.stringify(google)).toContain('fixture-google-release');
+    expect(JSON.stringify(apple)).toContain('fixture-apple-version');
+    expect(JSON.stringify({ google, apple })).not.toContain('fixture-token-not-a-secret');
   });
 });
