@@ -11,7 +11,8 @@ const appSchema = z.object({
     reportingBucket: z.string().min(3).max(222).regex(/^[a-z0-9][a-z0-9._-]*[a-z0-9]$/).optional()
   }).optional(),
   appStore: z.object({
-    appId: z.string().regex(/^\d+$/)
+    appId: z.string().regex(/^\d+$/),
+    vendorNumber: z.string().min(1).max(100).regex(/^[A-Za-z0-9-]+$/).optional()
   }).optional()
 }).refine((app) => app.googlePlay || app.appStore, {
   message: 'an app must configure Google Play, App Store, or both'
