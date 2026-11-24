@@ -44,7 +44,7 @@ Acepta gzip y CSV UTF-8/UTF-16 con BOM, hasta 5 MiB por objeto y 13 meses.
 Los fallos usarán categorías sanitizadas: `CONFIGURATION`, `AUTHORIZATION`,
 `NOT_FOUND` y `PROVIDER`. Datos ausentes no equivalen a cero.
 
-## Proveedores previstos
+## Configuración de proveedores
 
 - Google Play: configuración por `packageName` y tracks; autenticación local
   mediante ADC, `GOOGLE_APPLICATION_CREDENTIALS` o un token OAuth local de

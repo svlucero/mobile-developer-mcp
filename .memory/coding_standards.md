@@ -29,7 +29,9 @@
 
 Las pruebas deben incluir protocolo stdio con fixtures de ambos proveedores,
 validación, redacción de secretos, errores estructurados y métodos/rutas
-salientes. `npm test` compila y ejecuta Vitest. Usar mensajes de commit
+salientes. `npm test` compila y ejecuta Vitest; `npm run build` ejecuta el
+chequeo de tipos y genera `dist/`. Verificar la suite completa de la rama
+integrada antes de fusionar entregas dependientes. Usar mensajes de commit
 convencionales y acotados.
 
 Ver [arquitectura](architecture.md) y [contratos](api_contracts.md).

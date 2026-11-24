@@ -3,15 +3,16 @@
 ## Propósito
 
 Servidor MCP local de solo lectura para consultar datos de negocio de Google
-Play y App Store Connect. El issue #2 establece la infraestructura compartida;
-las consultas por proveedor se incorporan después.
+Play y App Store Connect: releases, reviews, diagnósticos y reportes de
+instalaciones/descargas, con adaptadores independientes por proveedor.
 
 ## Implementación base
 
 - Node.js/TypeScript con transporte MCP por `stdio`.
 - `src/index.ts` conecta `McpServer` al transporte; stdout queda reservado para
   JSON-RPC y los diagnósticos van a stderr.
-- `src/server.ts` registra las herramientas iniciales de inspección local.
+- `src/server.ts` registra las herramientas de inspección local y las consultas
+  de Google Play y App Store Connect.
 - `src/contracts.ts`, `src/config.ts` y `src/errors.ts` establecen contratos,
   carga validada/redactada de configuración y errores de dominio sanitizados.
 - `src/providers/` contiene adaptadores independientes de Google Play y App
