@@ -56,4 +56,11 @@ describe('stdio MCP server', () => {
     expect(JSON.stringify(result)).toContain('CONFIGURATION');
     expect(JSON.stringify(result)).not.toContain('very-secret-token');
   });
+
+  it('uses the injected process environment for provider status', async () => {
+    const client = await connect({ GOOGLE_APPLICATION_CREDENTIALS: '/private/service-account.json' });
+    const result = await client.callTool({ name: 'mobile_developer_provider_status', arguments: {} });
+    expect(result.isError).not.toBe(true);
+    expect(JSON.stringify(result)).toContain('"provider":"google-play","credentialsConfigured":true');
+  });
 });
