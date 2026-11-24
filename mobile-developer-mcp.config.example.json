@@ -4,7 +4,8 @@
       "id": "my-mobile-app",
       "googlePlay": {
         "packageName": "com.example.app",
-        "tracks": ["production", "beta"]
+        "tracks": ["production", "beta"],
+        "reportingBucket": "pubsite_prod_rev_0123456789"
       },
       "appStore": {
         "appId": "1234567890"

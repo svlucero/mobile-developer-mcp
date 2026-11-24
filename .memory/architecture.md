@@ -16,7 +16,11 @@ las consultas por proveedor se incorporan después.
   carga validada/redactada de configuración y errores de dominio sanitizados.
 - `src/providers/` contiene adaptadores independientes de Google Play y App
   Store Connect. `google-play.ts` usa ADC o una cuenta de servicio local y hace
-  únicamente GETs al API de Android Publisher.
+  únicamente GETs a Android Publisher, Play Developer Reporting y GCS.
+- El adaptador de Google incluye búsqueda paginada de issues de Android vitals
+  y un lector de CSV de instalaciones de objetos existentes de GCS. Decodifica
+  gzip y UTF-16/UTF-8, limita cada descarga a 5 MiB y no agrega observaciones
+  diarias de stock como si fueran flujos.
 - Los adaptadores son opcionales e independientes: una configuración válida de
   un proveedor no exige credenciales del otro. El entorno inyectado al servidor
   se propaga a los adaptadores para informar estado sin revelar secretos.
@@ -27,7 +31,8 @@ listado y llamada MCP reales por stdio.
 ## Límites
 
 - Solo lectura de recursos de negocio; autenticación puede intercambiar tokens.
-- No publicar releases, editar tracks, responder reviews ni generar reportes.
+- No publicar releases, editar tracks, responder reviews, generar reportes ni
+  escribir/listar objetos de GCS.
 - Releases usa la ruta directa de tracks, sin edits; reviews devuelve solo
   `userComment` y no respuestas del desarrollador.
 - Conservar fuente, período, unidad, límites y paginación en los contratos.

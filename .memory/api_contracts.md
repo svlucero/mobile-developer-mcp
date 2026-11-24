@@ -25,13 +25,30 @@ Ambas herramientas son de solo lectura. Cada futura consulta debe conservar
 proveedor/fuente, período, unidad y metadatos de límite o paginación. Los
 esquemas compartidos ya validan `period`, `unit` y `pagination`.
 
+`mobile_developer_google_play_vital_issues` recibe `appId`, `start` y `end`
+como timestamps UTC alineados a una hora, más `versionCodes`, tipos (`CRASH`,
+`ANR`, `NON_FATAL`), `limit` (1–100) y cursor opcionales. Hace GET a
+`v1beta1/apps/{package}/errorIssues:search` con scope
+`playdeveloperreporting`, conserva los conteos que devuelve Google y expone el
+cursor siguiente sin recorrerlo automáticamente.
+
+`mobile_developer_google_play_installation_metrics` recibe `appId`, período de
+fechas y dimensión opcional. Lee solamente el objeto mensual conocido
+`stats/installs/installs_{package}_{yyyyMM}_{dimension}.csv` del
+`reportingBucket` configurado, usando scope `devstorage.read_only`. Cada salida
+conserva nombre exacto de columna, `count`, fuente, período diario, dimensiones,
+entidad (`events`, `devices` o `users`) y tipo temporal (`flow` o `stock`). No
+lista ni escribe objetos, omite objetos mensuales ausentes y no fabrica ceros.
+Acepta gzip y CSV UTF-8/UTF-16 con BOM, hasta 5 MiB por objeto y 13 meses.
+
 Los fallos usarán categorías sanitizadas: `CONFIGURATION`, `AUTHORIZATION`,
 `NOT_FOUND` y `PROVIDER`. Datos ausentes no equivalen a cero.
 
 ## Proveedores previstos
 
 - Google Play: configuración por `packageName` y tracks; autenticación local
-  mediante ADC o `GOOGLE_APPLICATION_CREDENTIALS`, scope `androidpublisher`.
+  mediante ADC o `GOOGLE_APPLICATION_CREDENTIALS`, con scopes separados
+  `androidpublisher`, `playdeveloperreporting` y `devstorage.read_only`.
   Consultar reviews requiere el permiso de Play Console "Reply to reviews".
   Estos endpoints son solo GET y no crean edits.
 - App Store Connect: configuración por App Store app ID; credenciales locales

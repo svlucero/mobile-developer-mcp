@@ -11,6 +11,9 @@
 - Los adaptadores HTTP solo deben ejecutar métodos/rutas explícitamente
   permitidos; Google Play usa GET y mapea 401/403 a `AUTHORIZATION`, 404 a
   `NOT_FOUND` y límites/fallos a `PROVIDER`.
+- Para Vitals, validar timestamps UTC alineados a hora y fijar límites locales
+  más estrictos que los máximos remotos. Para estadísticas, limitar meses y
+  bytes antes/durante la descarga y conservar cada observación sin sumar stocks.
 - Inyectar entorno, autenticación y transporte en adaptadores para probar con
   fixtures sin credenciales ni tráfico real.
 - Usar `McpDomainError` y sus códigos `CONFIGURATION`, `AUTHORIZATION`,

@@ -112,5 +112,41 @@ export function createServer(environment: NodeJS.ProcessEnv = process.env): McpS
     } catch (error) { return asToolError(error); }
   });
 
+  server.registerTool('mobile_developer_google_play_vital_issues', {
+    title: 'List Android vitals crash and ANR issues',
+    description: 'Searches grouped Android vitals issues through the read-only Play Developer Reporting API. Times must be UTC hour-aligned; pagination is bounded.',
+    inputSchema: {
+      ...googleAppInput,
+      start: z.string().datetime({ offset: true }), end: z.string().datetime({ offset: true }),
+      limit: z.number().int().min(1).max(100).default(50), cursor: z.string().min(1).max(1_024).optional(),
+      versionCodes: z.array(z.string().regex(/^\d+$/)).min(1).max(20).optional(),
+      types: z.array(z.enum(['CRASH', 'ANR', 'NON_FATAL'])).min(1).max(3).optional()
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
+  }, async ({ appId, start, end, limit, cursor, versionCodes, types }) => {
+    try {
+      const app = loadConfig(environment).apps.find((candidate) => candidate.id === appId);
+      if (!app?.googlePlay) throw new McpDomainError('NOT_FOUND', 'The Google Play application is not configured locally.');
+      const result = await new GooglePlayAdapter(environment).listVitalIssues(app.googlePlay.packageName, { start, end, limit, cursor, versionCodes, types });
+      const payload = { appId, ...result, metadata: { source: 'google-play-developer-reporting', period: { start, end }, unit: 'count', pagination: { limit, ...(cursor ? { cursor } : {}) }, limits: { maxItems: limit, truncated: Boolean(result.nextCursor) }, limitations: ['Only issues with reports in the requested interval are returned.', 'Live credentials and Reporting API access are required; no live account was used for fixture validation.'] } };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(payload) }], structuredContent: payload };
+    } catch (error) { return asToolError(error); }
+  });
+
+  server.registerTool('mobile_developer_google_play_installation_metrics', {
+    title: 'Read Google Play installation statistics',
+    description: 'Reads existing installation-statistics CSV objects from the configured private Google Cloud Storage bucket. It never writes objects or sums daily stock observations.',
+    inputSchema: { ...googleAppInput, start: z.string().date(), end: z.string().date(), dimension: z.string().regex(/^[a-z0-9_]{1,80}$/).optional() },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true }
+  }, async ({ appId, start, end, dimension }) => {
+    try {
+      const app = loadConfig(environment).apps.find((candidate) => candidate.id === appId);
+      if (!app?.googlePlay?.reportingBucket) throw new McpDomainError('NOT_FOUND', 'The Google Play application or its private statistics bucket is not configured locally.');
+      const result = await new GooglePlayAdapter(environment).readInstallationMetrics(app.googlePlay.reportingBucket, app.googlePlay.packageName, { start, end, dimension });
+      const payload = { appId, ...result, metadata: { source: 'google-play-statistics-gcs', period: { start, end }, unit: 'count', dimensions: dimension ? [dimension] : [], limits: { maxItems: 13, truncated: false }, limitations: ['Each metric is an unaggregated daily observation with its exact report-column name.', 'Stock metrics are never summed as new installations.', 'Missing monthly objects produce no metrics; they are not represented as zero.', 'Live bucket permissions and report availability were not validated.'] } };
+      return { content: [{ type: 'text' as const, text: JSON.stringify(payload) }], structuredContent: payload };
+    } catch (error) { return asToolError(error); }
+  });
+
   return server;
 }
