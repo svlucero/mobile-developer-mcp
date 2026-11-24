@@ -23,6 +23,11 @@ class ApplicationDefaultCredentials implements AccessTokenProvider {
   }
 }
 
+class EnvironmentAccessToken implements AccessTokenProvider {
+  constructor(private readonly token: string) {}
+  async getAccessToken(): Promise<string> { return this.token; }
+}
+
 export interface GoogleRelease { name?: string; versionCodes: string[]; status?: string; }
 export interface GoogleReview {
   reviewId: string; authorName?: string; score?: number; text?: string; originalText?: string;
@@ -63,7 +68,7 @@ export class GooglePlayAdapter implements ProviderAdapter {
   ) {}
 
   isConfigured(): boolean {
-    return Boolean(this.environment.GOOGLE_APPLICATION_CREDENTIALS);
+    return Boolean(this.environment.GOOGLE_APPLICATION_CREDENTIALS || this.environment.GOOGLE_OAUTH_ACCESS_TOKEN);
   }
 
   async listReleases(packageName: string, track: string): Promise<GoogleRelease[]> {
@@ -150,7 +155,9 @@ export class GooglePlayAdapter implements ProviderAdapter {
 
   private async getResponse(url: string, scope: string): Promise<Response> {
     let token: string;
-    const tokenProvider = this.tokenProvider ?? new ApplicationDefaultCredentials(scope);
+    const tokenProvider = this.tokenProvider ?? (this.environment.GOOGLE_OAUTH_ACCESS_TOKEN
+      ? new EnvironmentAccessToken(this.environment.GOOGLE_OAUTH_ACCESS_TOKEN)
+      : new ApplicationDefaultCredentials(scope));
     try { token = await tokenProvider.getAccessToken(); }
     catch (error) {
       if (error instanceof McpDomainError) throw error;

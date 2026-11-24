@@ -16,6 +16,8 @@
   bytes antes/durante la descarga y conservar cada observación sin sumar stocks.
 - Inyectar entorno, autenticación y transporte en adaptadores para probar con
   fixtures sin credenciales ni tráfico real.
+- El token OAuth local alternativo de Google se trata como secreto: solo se lee
+  de entorno, nunca de la configuración de apps, respuestas o logs.
 - Usar `McpDomainError` y sus códigos `CONFIGURATION`, `AUTHORIZATION`,
   `NOT_FOUND` o `PROVIDER` al convertir fallos de dominio a una respuesta MCP.
 - La configuración se lee desde la ruta en `MOBILE_DEVELOPER_MCP_CONFIG_PATH`;
@@ -25,8 +27,11 @@
   Analytics. Datos no disponibles no son cero; diagnostic signatures no son un
   listado completo de crashes.
 
-Las pruebas deben incluir protocolo stdio, validación, redacción de secretos,
-errores estructurados, métodos/rutas salientes y fixtures opcionales. `npm test`
-compila y ejecuta Vitest. Usar mensajes de commit convencionales y acotados.
+Las pruebas deben incluir protocolo stdio con fixtures de ambos proveedores,
+validación, redacción de secretos, errores estructurados y métodos/rutas
+salientes. `npm test` compila y ejecuta Vitest; `npm run build` ejecuta el
+chequeo de tipos y genera `dist/`. Verificar la suite completa de la rama
+integrada antes de fusionar entregas dependientes. Usar mensajes de commit
+convencionales y acotados.
 
 Ver [arquitectura](architecture.md) y [contratos](api_contracts.md).

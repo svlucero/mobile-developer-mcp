@@ -97,3 +97,62 @@ latencia de publicación o privacidad no se representan como cero.
 npm run build
 npm test
 ```
+
+## Preparación externa y permisos mínimos
+
+Las siguientes acciones ocurren fuera del MCP, en las consolas de los
+proveedores. El servidor no puede ni intenta crear apps, activar APIs, generar
+reportes, modificar roles, publicar artefactos ni escribir objetos.
+
+| Proveedor | Preparación y permisos de menor privilegio | Preparación manual y disponibilidad |
+| --- | --- | --- |
+| Google Play | Vincular ADC/cuenta de servicio a Play Console con lectura de la app. Reviews exige **Reply to reviews**; Vitals requiere Play Developer Reporting y scope `playdeveloperreporting`. | Configurar `packageName` y tracks. Las reseñas y reportes pueden tardar en aparecer. |
+| Google Statistics | Otorgar `Storage Object Viewer` al bucket privado y scope `devstorage.read_only`. | Preparar/localizar el bucket de informes Play, configurar `reportingBucket` y esperar el CSV mensual. El MCP no lista, crea ni escribe objetos. |
+| App Store Connect | Crear una API key `.p8` local y asignar el rol de lectura mínimo para versiones, builds, reviews y diagnósticos. Configurar `KEY_PATH`, `KEY_ID`, `ISSUER_ID` y el App Store app ID. | Mantener la clave fuera de Git. Los roles distintos de Sales/Analytics pueden usar `APP_STORE_CONNECT_SALES_*` y `..._ANALYTICS_*`; los campos ausentes heredan la credencial principal. |
+| Apple Sales/Analytics | Conceder el rol de Sales and Trends y/o Analytics, y configurar `vendorNumber` para Sales. | Generar/publicar reportes y solicitudes Analytics en App Store Connect y esperar disponibilidad. El MCP solo lee reportes, instancias y segmentos existentes. |
+
+Además de ADC o `GOOGLE_APPLICATION_CREDENTIALS`, se admite localmente un token
+OAuth de corta vida en `GOOGLE_OAUTH_ACCESS_TOKEN`; no lo guarde en el JSON de
+apps ni lo agregue a Git.
+
+## Catálogo de herramientas
+
+Todos los `limit` están acotados a 1–100 y los cursores son opacos. Las
+respuestas conservan fuente, unidad, período y/o paginación cuando corresponda.
+
+| Herramienta | Entradas | Salida | Límites y semántica |
+| --- | --- | --- | --- |
+| `mobile_developer_list_apps` | `provider?`, `limit?` | Apps y configuración no secreta | Máximo 100, puede truncar. |
+| `mobile_developer_provider_status` | — | Presencia booleana de credenciales | No valida permisos ni contacta proveedores. |
+| `mobile_developer_google_play_releases` | `appId`, `track` | Nombre, versionCodes, estado | Excluye obsoletos, máximo 20; sin historial completo ni rollout. |
+| `mobile_developer_google_play_reviews` | `appId`, `limit?`, `cursor?`, `translationLanguage?` | Comentarios de usuario, score, versión y fecha | Solo creados/modificados en la última semana; sin respuestas de desarrollador. |
+| `mobile_developer_google_play_vital_issues` | `appId`, `start`, `end`, `versionCodes?`, `types?`, paginación | Issues, conteo y usuarios distintos | UTC alineado a hora; no equiparable a diagnósticos Apple. |
+| `mobile_developer_google_play_installation_metrics` | `appId`, `start`, `end`, `dimension?` | Observaciones CSV diarias, columna exacta, entidad/tipo | Hasta 13 objetos mensuales y 5 MiB por objeto; no suma stocks. |
+| `mobile_developer_app_store_versions` | `appId`, `limit?`, `cursor?`, `platform?` | Versiones y estado | Paginación a 100. |
+| `mobile_developer_app_store_builds` | `appId`, `limit?`, `cursor?`, `version?` | Builds y processing state | Paginación a 100. |
+| `mobile_developer_app_store_reviews` | `appId`, `limit?`, `cursor?`, `territory?` | Customer reviews | Sin developer responses. |
+| `mobile_developer_app_store_diagnostic_signatures` | `buildId`, paginación | Firma, tipo, peso | No es inventario completo de crashes de producción. |
+| `mobile_developer_app_store_sales_downloads` | `appId`, `date` | Descargas de filas de apps | Reporte diario existente, 5 MiB; excluye IAP; separa redescargas solo con `Order Type`. |
+| `mobile_developer_app_store_analytics_existing` | `appId`, paginación, `instanceId?` | Solicitudes/reportes/instancias o IDs de segmentos | Solo existentes; sin URL firmada, creación ni reanudación. |
+
+## Ausencia de datos, retención y verificación
+
+- Ausencia no es cero: un CSV/reporte/instancia ausente devuelve colección vacía
+  o `reportAvailable: false`; permisos insuficientes producen `AUTHORIZATION`.
+- Reviews de Google solo cubre una ventana de una semana y releases no es
+  historial completo. Play reporting, buckets privados, Sales and Trends y
+  Analytics tienen latencia; privacidad, umbrales y roles pueden ocultar datos.
+- Las instalaciones Play preservan columna, entidad (events/devices/users) y
+  flujo/stock. Sales Apple cuenta producto app, no personas únicas. Diagnósticos
+  Apple y Vitals Android tienen coberturas y denominadores diferentes.
+- Errores `CONFIGURATION`, `AUTHORIZATION`, `NOT_FOUND` y `PROVIDER` se
+  sanitizan; nunca se devuelven claves, JWT, Bearer tokens ni URLs firmadas.
+
+`npm test` compila y ejecuta validación, sanitización, fixtures de adaptador y
+una integración MCP real por stdio con fixtures de Google Play y App Store
+Connect. La fixture rechaza métodos distintos de `GET`; las pruebas y una
+auditoría de fuentes cubren la ausencia de POST/PUT/PATCH/DELETE contra
+proveedores. No usa credenciales reales, por lo que no acredita permisos,
+cuentas, buckets ni reportes preparados. Un smoke test manual con credenciales
+locales debe limitarse a una consulta de lectura por proveedor e informar qué
+recursos y permisos respondieron realmente.
