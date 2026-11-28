@@ -1,38 +1,20 @@
 # Coding standards
 
-- Always write code, identifiers, comments, docstrings, documentation, README
-  files, examples, agent instructions, commits, and pull request text in English.
-  Preserve external identifiers and actual provider data. See ../AGENTS.md.
-- Use strict TypeScript and ESM with `.js` extensions for local imports.
-- Supported Node versions: 22 or versions from 24, preferably LTS. Tests use
-  Vitest 4.1.12 or later in the 4.x line. Generate synthetic signing keys at
-  runtime instead of storing PEM material in tests.
-- Reserve stdout for MCP; send diagnostics to stderr.
-- Validate external inputs at boundaries and bound pagination/download volume.
-- Do not commit, log, or return secrets. Sanitize domain errors before returning
-  them through MCP; distinguish configuration, authorization, missing resources,
-  and provider failures with `McpDomainError`.
-- Keep providers separate and V1 business resources read-only. Explicitly allow
-  HTTP methods/routes; map 401/403 to `AUTHORIZATION`, 404 to `NOT_FOUND`, and
-  rate limits or other failures to `PROVIDER`.
-- Vitals uses UTC timestamps aligned to hours. Preserve metric units, periods,
-  dimensions, and flow/stock semantics without manufacturing zeros.
-- Inject environment, authentication, and transport dependencies for fixtures.
-  Do not call live accounts in tests or CI.
-- Configuration comes from `MOBILE_DEVELOPER_MCP_CONFIG_PATH`. No automatic
-  `.env` loading occurs; export variables or pass a client environment.
-- Store credentials outside Git. Version synthetic examples only. Treat Google
-  OAuth tokens as secrets and sign short-lived Apple JWTs from local keys.
-- Never return signed Analytics segment URLs. Missing data is not zero, and
-  Apple diagnostic signatures are not a complete crash inventory.
-
-`npm test` compiles and runs Vitest; `npm run build` type-checks and creates
-`dist/`. Run the integrated suite before merging dependent changes. Use focused,
-conventional commits. CI uses SHA-pinned actions and a read-only GitHub token.
-
-Contributions use MIT; follow CONTRIBUTING.md and SECURITY.md. Keep package and
-lockfile license metadata consistent. `private: true` controls npm publishing,
-not repository visibility. Update all three memory documents with verified
-knowledge when working on the repository.
+- Write source, identifiers, comments, tests, documentation, configuration
+  examples, commits, and pull-request text in English.
+- Use Go formatting (`gofmt`) and keep Go 1.26+ compatibility. Run `go test
+  ./...`, `go test -race ./...`, `go vet ./...`, and a production build before
+  merging a code change.
+- Keep stdout exclusive to MCP. Send only generic, non-secret diagnostics to
+  stderr. Do not log or return tokens, private keys, JWTs, signed URLs, or raw
+  provider response bodies.
+- Validate external input at the MCP boundary and reject unknown fields. Use
+  bounded HTTP/report reads and preserve pagination, units, periods, and
+  dimensions rather than manufacturing zero values.
+- Keep provider integrations isolated and all V1 business-resource calls
+  read-only. Map 401/403 to `AUTHORIZATION`, 404 to `NOT_FOUND`, and all other
+  provider failures to `PROVIDER`.
+- Inject environment, clock, token, and HTTP dependencies where tests need
+  deterministic fixtures. Never call a live store account in tests or CI.
 
 See [architecture](architecture.md) and [API contracts](api_contracts.md).

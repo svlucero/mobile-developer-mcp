@@ -11,13 +11,13 @@ and small bug fixes can be submitted directly as pull requests.
 ## Set up your environment
 
 1. Fork and clone the repository, or create a branch if you have write access.
-2. Use Node LTS; the CI matrix covers 22, 24, and 26.
-3. Run `npm ci` and `npm test`. No live credentials are required.
+2. Use Go 1.26 or newer.
+3. Run `go test ./...`. No live credentials are required.
 4. Keep changes focused and add tests for behavior changes.
 
 ## Conventions
 
-- Use strict TypeScript, ESM, and `.js` extensions for local imports.
+- Use `gofmt` and idiomatic Go. Keep dependencies minimal and documented.
 - Separate provider adapters and validate MCP inputs.
 - Keep V1 read-only: no publishing, review replies, resource editing, or report
   generation.
@@ -34,8 +34,10 @@ For new queries, document permissions, source, period, limits, and semantics.
 ## Before opening a pull request
 
 ```sh
-npm run build
-npm test
+go test ./...
+go test -race ./...
+go vet ./...
+go build ./cmd/mobile-developer-mcp
 git diff --check
 git status --short
 ```
