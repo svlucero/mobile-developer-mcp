@@ -1,61 +1,51 @@
-# Arquitectura
+# Architecture
 
-## Propósito
+## Purpose
 
-Servidor MCP local de solo lectura para consultar datos de negocio de Google
-Play y App Store Connect: releases, reviews, diagnósticos y reportes de
-instalaciones/descargas, con adaptadores independientes por proveedor.
+A local, read-only MCP server for Google Play and App Store Connect releases,
+reviews, diagnostics, and installation/download reports. Providers are optional
+and independent.
 
-## Implementación base
+## Implementation
 
-- Node.js/TypeScript con transporte MCP por `stdio`.
-- `src/index.ts` conecta `McpServer` al transporte; stdout queda reservado para
-  JSON-RPC y los diagnósticos van a stderr.
-- `src/server.ts` registra las herramientas de inspección local y las consultas
-  de Google Play y App Store Connect.
-- `src/contracts.ts`, `src/config.ts` y `src/errors.ts` establecen contratos,
-  carga validada/redactada de configuración y errores de dominio sanitizados.
-- `src/providers/` contiene adaptadores independientes de Google Play y App
-  Store Connect. `google-play.ts` usa ADC o una cuenta de servicio local y hace
-  únicamente GETs a Android Publisher, Play Developer Reporting y GCS.
-- El adaptador de Google incluye búsqueda paginada de issues de Android vitals
-  y un lector de CSV de instalaciones de objetos existentes de GCS. Decodifica
-  gzip y UTF-16/UTF-8, limita cada descarga a 5 MiB y no agrega observaciones
-  diarias de stock como si fueran flujos.
-- `app-store.ts` firma JWT ES256 localmente con una clave `.p8` y realiza GET a
-  versiones, builds, customer reviews, diagnostic signatures, Sales and Trends
-  y recursos Analytics existentes. Admite credenciales distintas para Sales o
-  Analytics, limita informes gzip/TSV a 5 MiB y nunca devuelve JWT, clave ni URL
-  firmada.
-- Los adaptadores son opcionales e independientes: una configuración válida de
-  un proveedor no exige credenciales del otro. El entorno inyectado al servidor
-  se propaga a los adaptadores para informar estado sin revelar secretos.
-- Las pruebas de stdio pueden precargar un `fetch` de fixture en el proceso hijo:
-  ejercitan herramientas Google y Apple por el protocolo sin tráfico ni
-  credenciales reales. Google también admite un token OAuth local de corta vida
-  (`GOOGLE_OAUTH_ACCESS_TOKEN`) como alternativa a ADC.
+- Node.js/TypeScript and ESM. `src/index.ts` connects the MCP server to stdio;
+  stdout is reserved for JSON-RPC and diagnostics go to stderr.
+- `src/server.ts` registers local inspection and provider query tools.
+- `src/config.ts`, `src/contracts.ts`, and `src/errors.ts` provide validated
+  configuration, shared schemas, and sanitized domain errors.
+- `src/providers/google-play.ts` uses ADC, a local service account, or a
+  short-lived environment token. Business calls use GET to Android Publisher,
+  Play Developer Reporting, and known private GCS report objects.
+- Google installation CSV parsing supports gzip, UTF-8, and UTF-16. Downloads
+  are limited to 5 MiB each and up to 13 monthly objects. Daily stock observations
+  are not summed as installation flows.
+- `src/providers/app-store.ts` signs ES256 JWTs from local keys. It reads
+  versions, builds, reviews, diagnostics, Sales, and existing Analytics metadata.
+  Sales/Analytics can have separate credentials; signed segment URLs are omitted.
+- Configuration and credentials are injected into adapters. Configuring one
+  provider does not require the other.
 
-Las pruebas de `test/` cubren carga de configuración, redacción, handshake y
-llamadas MCP reales por stdio con fixtures de ambos proveedores.
+## Distribution and validation
 
-## Distribución y colaboración
+Install from Git using `npm ci`; `private: true` prevents accidental npm
+publication. LICENSE uses MIT. README explains setup, CONTRIBUTING covers
+contributions, and SECURITY describes private vulnerability reports.
+AGENTS.md and CLAUDE.md require English for project artifacts.
 
-Instalación desde Git y `npm ci`; `private: true` evita publicación accidental
-en npm. Licencia MIT en `LICENSE`. README documenta el uso; CONTRIBUTING y
-SECURITY describen colaboración y reportes privados. La CI de GitHub compila
-y prueba con Node 22/24/26, sin credenciales de las tiendas, y audita dependencias.
+Tests cover configuration, errors, JWTs, provider fixtures, and actual MCP calls
+over stdio with simulated responses. GitHub CI tests Node 22/24/26 and audits
+dependencies without store credentials. Tests generate ephemeral signing keys.
 
-## Límites
+## Boundaries
 
-- Solo lectura de recursos de negocio; autenticación puede intercambiar tokens.
-- No publicar releases, editar tracks, responder reviews, generar reportes ni
-  escribir/listar objetos de GCS.
-- Releases usa la ruta directa de tracks, sin edits; reviews devuelve solo
-  `userComment` y no respuestas del desarrollador.
-- Conservar fuente, período, unidad, límites y paginación en los contratos.
-- Analytics no crea ni reanuda solicitudes de generación; si no hay instancias
-  o segmentos, el usuario debe preparar el reporte en App Store Connect.
-- Sales selecciona `vendorNumber` desde la configuración local, pero no filtra
-  el reporte por el ID Apple de la app; las filas conservan sus dimensiones.
+- V1 does not publish, edit tracks, reply to reviews, create reports, or write
+  or list GCS objects. Authentication may exchange tokens.
+- Google releases use the direct track endpoint without edits; reviews return
+  user comments without developer replies.
+- Apple Analytics inspects existing resources; it does not download segments
+  or create/resume report requests.
+- Sales selects a configured vendor number, without filtering by Apple app ID.
+  Rows retain dimensions for identifying individual apps.
+- Report download limits do not guarantee decompression memory limits.
 
-Ver [convenciones](coding_standards.md) y [contratos](api_contracts.md).
+See [coding standards](coding_standards.md) and [API contracts](api_contracts.md).

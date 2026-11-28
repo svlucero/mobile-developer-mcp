@@ -1,105 +1,89 @@
-# Contratos de APIs
+# API contracts
 
-## MCP local implementado
+## Configuration and local tools
 
-`mobile_developer_list_apps` lista configuración no secreta y acepta `provider`
-(`google-play` o `app-store`) y `limit` (1–100). Su resultado incluye metadatos
-de límite y truncamiento. `mobile_developer_provider_status` expone solamente
-booleanos de presencia de credenciales.
+The server uses MCP over stdio. `MOBILE_DEVELOPER_MCP_CONFIG_PATH` selects the
+app configuration; if absent, configuration is empty. No file discovery or
+automatic `.env` loading occurs. The local app `id` is the tool's `appId`,
+distinct from the numeric Apple ID stored in `appStore.appId`.
 
-`MOBILE_DEVELOPER_MCP_CONFIG_PATH` ausente produce una configuración vacía;
-no se busca automáticamente un archivo ni se carga `.env`. El alias local
-`id` es el `appId` de las herramientas y difiere del ID Apple configurado.
-El estado Google comprueba variables, no todas las formas de ADC ni permisos.
+`mobile_developer_list_apps` accepts optional `provider` (`google-play` or
+`app-store`) and `limit` (1–100), returning non-secret configuration and limit
+metadata. `mobile_developer_provider_status` returns credential-presence booleans;
+it does not validate roles or every ADC discovery mechanism.
 
-`mobile_developer_google_play_releases` recibe un `appId` local y un `track`
-configurado y hace `GET /applications/{packageName}/tracks/{track}/releases`.
-Normaliza `ReleaseSummary.releaseName`, `activeArtifacts[].versionCode` y
-`releaseLifecycleState` como `name`, `versionCodes` y `status`. Google excluye
-releases obsoletos, limita la respuesta a 20 y no entrega historia completa ni
-porcentaje de rollout.
+Domain errors use sanitized `CONFIGURATION`, `AUTHORIZATION`, `NOT_FOUND`, or
+`PROVIDER` codes. Missing data must not become zero. Preserve source, unit,
+period, dimensions, limits, and pagination where applicable.
 
-`mobile_developer_google_play_reviews` recibe `appId`, `limit` (1–100), cursor
-opcional y `translationLanguage` opcional. Hace GET a `/reviews` con solo esos
-parámetros soportados y entrega `userComment`: puntuación, texto, fechas y
-versiones cuando existen. No devuelve `developerComment`/replies. Google solo
-ofrece reviews creadas o modificadas dentro de la última semana; una página
-vacía es válida, mientras 401/403 es `AUTHORIZATION`.
+## Google Play
 
-Ambas herramientas son de solo lectura. Cada futura consulta debe conservar
-proveedor/fuente, período, unidad y metadatos de límite o paginación. Los
-esquemas compartidos ya validan `period`, `unit` y `pagination`.
+Authentication uses ADC, `GOOGLE_APPLICATION_CREDENTIALS`, or a short-lived
+`GOOGLE_OAUTH_ACCESS_TOKEN`. Scopes are selected per resource: `androidpublisher`,
+`playdeveloperreporting`, and `devstorage.read_only`. Play Console requires
+"Reply to reviews" permission for review queries, although tools never reply.
 
-`mobile_developer_google_play_vital_issues` recibe `appId`, `start` y `end`
-como timestamps UTC alineados a una hora, más `versionCodes`, tipos (`CRASH`,
-`ANR`, `NON_FATAL`), `limit` (1–100) y cursor opcionales. Hace GET a
-`v1beta1/apps/{package}/errorIssues:search` con scope
-`playdeveloperreporting`, conserva los conteos que devuelve Google y expone el
-cursor siguiente sin recorrerlo automáticamente.
+- `mobile_developer_google_play_releases`: local `appId` and configured `track`;
+  GET `/applications/{packageName}/tracks/{track}/releases`. Maps ReleaseSummary
+  fields `releaseName`, `activeArtifacts[].versionCode`, and
+  `releaseLifecycleState` to `name`, `versionCodes`, and `status`. No edits are
+  created. Google returns up to 20 non-obsolete releases without complete
+  history or rollout percentages.
+- `mobile_developer_google_play_reviews`: `appId`, limit 1–100, optional cursor
+  and `translationLanguage`. GET `/reviews`, returning user comments, rating,
+  timestamps, and versions where available, without developer replies. Google
+  exposes reviews created or modified within the last week. Empty pages are
+  valid; authorization errors are not empty results.
+- `mobile_developer_google_play_vital_issues`: `appId`, hour-aligned UTC
+  `start`/`end`, optional `versionCodes`, types (`CRASH`, `ANR`, `NON_FATAL`),
+  limit 1–100, and cursor. GET `v1beta1/apps/{package}/errorIssues:search`.
+  Preserves returned counts and exposes the next cursor without following it.
+- `mobile_developer_google_play_installation_metrics`: `appId`, date range,
+  optional dimension. Reads known monthly objects from the configured
+  `reportingBucket`: `stats/installs/installs_{package}_{yyyyMM}.csv`, with an
+  optional `_{dimension}` suffix before `.csv`. No object listing or writes.
+  Daily observations preserve exact column names, count units, dimensions,
+  entity (`events`, `devices`, `users`), and temporal type (`flow`, `stock`).
+  Accepts gzip and UTF-8/UTF-16 CSV with BOM, up to 5 MiB per downloaded object
+  and 13 monthly objects. Missing objects are omitted without manufacturing zeros.
 
-`mobile_developer_google_play_installation_metrics` recibe `appId`, período de
-fechas y dimensión opcional. Lee solamente el objeto mensual conocido
-`stats/installs/installs_{package}_{yyyyMM}_{dimension}.csv` del
-`reportingBucket` configurado, usando scope `devstorage.read_only`. Cada salida
-conserva nombre exacto de columna, `count`, fuente, período diario, dimensiones,
-entidad (`events`, `devices` o `users`) y tipo temporal (`flow` o `stock`). No
-lista ni escribe objetos, omite objetos mensuales ausentes y no fabrica ceros.
-Acepta gzip y CSV UTF-8/UTF-16 con BOM, hasta 5 MiB por objeto y 13 meses.
+## App Store Connect
 
-Los fallos usarán categorías sanitizadas: `CONFIGURATION`, `AUTHORIZATION`,
-`NOT_FOUND` y `PROVIDER`. Datos ausentes no equivalen a cero.
+Primary credentials use `APP_STORE_CONNECT_KEY_PATH`, `_KEY_ID`, and
+`_ISSUER_ID`. `APP_STORE_CONNECT_SALES_*` and `APP_STORE_CONNECT_ANALYTICS_*`
+allow separate roles with per-field fallback to primary credentials. The
+adapter signs short-lived ES256 JWTs locally and uses GET for business queries.
 
-## Configuración de proveedores
+- `mobile_developer_app_store_versions`, `_builds`, and `_reviews`: local
+  `appId`, limit 1–100, optional cursor and resource-specific filter. Reviews
+  exclude developer replies. Cursors are not followed automatically.
+- `mobile_developer_app_store_diagnostic_signatures`: `buildId` and pagination;
+  available build diagnostics, not all production crashes.
+- `mobile_developer_app_store_sales_downloads`: local `appId` selects configured
+  `vendorNumber`; `date` selects a daily Sales/Summary report. Preserves source,
+  period, and dimensions. The parser includes only product type `1`, excludes
+  IAP, and distinguishes initial downloads/redownloads only when `Order Type`
+  exists; otherwise it returns `downloads`. It does not cover every product
+  type or filter report rows by the Apple app ID. Use dimensions to identify
+  individual apps.
+- `mobile_developer_app_store_analytics_existing`: existing requests, reports,
+  instances, and segment IDs. Never creates/resumes generation or returns
+  signed URLs. Inspects metadata only, without downloading segments. Missing
+  resources may require manual setup, permissions, or waiting for availability.
 
-- Google Play: configuración por `packageName` y tracks; autenticación local
-  mediante ADC, `GOOGLE_APPLICATION_CREDENTIALS` o un token OAuth local de
-  corta vida (`GOOGLE_OAUTH_ACCESS_TOKEN`), con scopes separados
-  `androidpublisher`, `playdeveloperreporting` y `devstorage.read_only`.
-  Consultar reviews requiere el permiso de Play Console "Reply to reviews".
-  Estos endpoints son solo GET y no crean edits.
-- App Store Connect: configuración por App Store app ID; credenciales locales
-  opcionales para el adaptador de Apple.
+Sales and Analytics depend on roles, report latency, and privacy restrictions.
+Reports larger than 5 MiB are rejected, but download limits do not bound
+decompression memory. HTTP 401/403 maps to `AUTHORIZATION`, 404 to `NOT_FOUND`,
+and other failures/rate limits to `PROVIDER`.
 
-## App Store Connect implementado
+## Verified V1 guarantees
 
-La credencial principal usa `APP_STORE_CONNECT_KEY_PATH`, `_KEY_ID` e
-`_ISSUER_ID`; los prefijos `APP_STORE_CONNECT_SALES_` y
-`APP_STORE_CONNECT_ANALYTICS_` permiten roles separados y heredan los valores
-principales faltantes. El adaptador firma JWT `ES256` local de corta duración y
-ejecuta únicamente GET.
+Provider business calls use GET without POST/PUT/PATCH/DELETE routes. Stdio
+integration tests exercise Google and Apple fixtures and reject other HTTP
+methods for those calls. They verify protocol handling, normalization, and
+secret redaction, not live account roles, bucket access, or report availability.
 
-- `mobile_developer_app_store_versions`, `_builds` y `_reviews` reciben el
-  `appId` local, límite 1–100, cursor y filtro opcional; reviews no incluye
-  respuestas. El cursor siguiente no se recorre automáticamente.
-- `mobile_developer_app_store_diagnostic_signatures` recibe `buildId` y
-  paginación. Son diagnósticos disponibles por build, no todos los crashes de
-  producción.
-- `mobile_developer_app_store_sales_downloads` requiere fecha y `vendorNumber`,
-  lee Sales/Summary diario y conserva fuente, período y dimensiones. Solo toma
-  `Product Type Identifier` `1` (apps), excluyendo IAP. Separa iniciales y
-  redescargas solo si existe `Order Type`; si no, devuelve `downloads`.
-  El reporte se selecciona por `vendorNumber`, no se filtra por app Apple:
-  usar dimensiones para distinguir filas. El parser no cubre todos los tipos
-  de producto de Sales.
-- `mobile_developer_app_store_analytics_existing` lee solicitudes, reportes,
-  instancias y segmentos ya existentes. Nunca crea/reanuda informes ni devuelve
-  URLs firmadas. Sin recursos puede requerir preparación manual, permisos o
-  esperar disponibilidad/privacidad; no devuelve cero.
-  Esta herramienta inspecciona metadatos e IDs; no descarga segmentos.
+All authored code, comments, documentation, and synthetic examples use English;
+external provider payloads retain their original data and language.
 
-Sales y Analytics pueden tener latencia, privacidad o roles distintos. Informes
-mayores de 5 MiB se rechazan. 401/403 son `AUTHORIZATION`, 404 es `NOT_FOUND`;
-el resto de fallos y límites son `PROVIDER`.
-
-Los recursos de negocio implementados conservan el alcance de solo lectura;
-las capacidades posteriores siguen usando estos contratos.
-
-## Garantías verificadas de V1
-
-Todos los adaptadores de proveedores emiten `GET`; no existen rutas de negocio
-POST/PUT/PATCH/DELETE. La integración stdio usa respuestas de fixture de Google
-y Apple y rechaza cualquier método distinto de GET. Esto verifica el protocolo,
-normalización y no filtrado de secretos, pero no acredita que una cuenta real
-tenga roles, bucket o reportes disponibles.
-
-Ver [arquitectura](architecture.md) y [convenciones](coding_standards.md).
+See [architecture](architecture.md) and [coding standards](coding_standards.md).
