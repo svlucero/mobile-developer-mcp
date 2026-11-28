@@ -1,4 +1,5 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
+import { generateKeyPairSync } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
@@ -82,11 +83,8 @@ describe('stdio MCP server', () => {
     const directory = mkdtempSync(join(tmpdir(), 'mobile-developer-mcp-'));
     const configPath = join(directory, 'config.json');
     const keyPath = join(directory, 'fixture-key.p8');
-    writeFileSync(keyPath, `-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIGul4YEmRvdRZxxnt9jTjTfzBj36LJfNdv1Hs9ptRWAOoAoGCCqGSM49
-AwEHoUQDQgAEciHMjmuhiVWjNnk8i4E+81mqIbdnqDb+Yn6horjIn9kfFfZV02m6
-kTP4atFEHnnOtGLo6i2ZEoVKMDaOlspi3w==
------END EC PRIVATE KEY-----`);
+    const { privateKey } = generateKeyPairSync('ec', { namedCurve: 'prime256v1' });
+    writeFileSync(keyPath, privateKey.export({ type: 'pkcs8', format: 'pem' }));
     writeFileSync(configPath, JSON.stringify({ apps: [{
       id: 'fixture-app',
       googlePlay: { packageName: 'com.example.fixture', tracks: ['production'] },

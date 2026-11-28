@@ -38,14 +38,14 @@ describe('Google Play read-only adapter', () => {
   it('keeps optional user-review fields and excludes developer replies', async () => {
     const { adapter, calls } = fixtureAdapter({
       reviews: [{ reviewId: 'review-1', authorName: 'Ada', comments: [
-        { userComment: { text: 'Great', originalText: 'Excelente', starRating: 5, lastModified: { seconds: '1700000000', nanos: 123000000 }, appVersionCode: 42, appVersionName: '4.2', reviewerLanguage: 'es' } },
+        { userComment: { text: 'Great', originalText: 'Excellent', starRating: 5, lastModified: { seconds: '1700000000', nanos: 123000000 }, appVersionCode: 42, appVersionName: '4.2', reviewerLanguage: 'en' } },
         { developerComment: { text: 'must never be exposed' } }
       ] }],
       tokenPagination: { nextPageToken: 'next-page' }
     });
 
     await expect(adapter.listReviews('com.example.app', { limit: 25, cursor: 'previous-page', translationLanguage: 'en_US' })).resolves.toEqual({
-      reviews: [{ reviewId: 'review-1', authorName: 'Ada', score: 5, text: 'Great', originalText: 'Excelente', lastModified: '2023-11-14T22:13:20.123Z', appVersionCode: '42', appVersionName: '4.2', reviewerLanguage: 'es' }],
+      reviews: [{ reviewId: 'review-1', authorName: 'Ada', score: 5, text: 'Great', originalText: 'Excellent', lastModified: '2023-11-14T22:13:20.123Z', appVersionCode: '42', appVersionName: '4.2', reviewerLanguage: 'en' }],
       nextCursor: 'next-page'
     });
     expect(calls[0]?.url).toBe('https://androidpublisher.googleapis.com/androidpublisher/v3/applications/com.example.app/reviews?maxResults=25&token=previous-page&translationLanguage=en_US');

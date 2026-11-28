@@ -8,3 +8,9 @@ coverage/
 *.p8
 *.key
 mobile-developer-mcp.config.json
+.DS_Store
+*.log
+.credentials/
+credentials/
+*service-account*.json
+application_default_credentials.json

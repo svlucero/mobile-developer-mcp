@@ -1,158 +1,284 @@
 # mobile-developer-mcp
 
-Servidor MCP local, de solo lectura, para datos de negocio de Google Play y
-App Store Connect. El transporte es seguro por stdio y las credenciales quedan
-siempre locales.
+A local [MCP](https://modelcontextprotocol.io/) server for querying Google Play
+and App Store Connect from a compatible assistant: releases, reviews, technical
+issues, and installation or download reports. **V1 is read-only.**
 
-## Inicio local
+This is an independent project, not affiliated with Google or Apple. It is
+experimental: tests use fixtures, and live access and permissions must be
+verified for each installation.
 
-Requiere Node.js 18 o superior.
+## How it works
 
-```sh
-npm install
-cp mobile-developer-mcp.config.example.json mobile-developer-mcp.config.json
-npm run build
-npm start
+```text
+MCP client / assistant
+        │ JSON-RPC over stdin/stdout
+        ▼
+mobile-developer-mcp (local process)
+        ├── app configuration + local credentials
+        ├── Google: Android Publisher / Play Reporting / GCS
+        └── Apple: App Store Connect / Sales / existing Analytics resources
 ```
 
-El archivo local de configuración está ignorado por Git. Puede usar otra ruta
-con `MOBILE_DEVELOPER_MCP_CONFIG_PATH`. Copie `.env.example` únicamente como
-referencia; nunca agregue claves, tokens o archivos de cuenta al repositorio.
+The client starts the process and calls tools with validated parameters.
+Provider adapters query APIs over HTTPS and return data with source and limit
+metadata. There is no web interface or HTTP server. stdout is reserved for MCP;
+diagnostics go to stderr. Returned data is available to the client and its
+assistant: review how they handle your apps' private information.
 
-Ejemplo de cliente MCP:
+Business queries use `GET`. The server does not publish releases, change tracks,
+reply to reviews, or create reports. Google authentication may exchange tokens
+using other HTTP requests. Each provider can be configured independently.
+
+## Quick start
+
+You need Git, npm, and Node.js LTS 22 or later. CI covers Node 22, 24, and 26.
+Node 18, 20, and 23 are outside the supported environment. Check supported
+versions on [Node.js Releases](https://nodejs.org/en/about/previous-releases).
+
+```sh
+git clone https://github.com/svlucero/mobile-developer-mcp.git
+cd mobile-developer-mcp
+npm ci
+npm run build
+cp mobile-developer-mcp.config.example.json mobile-developer-mcp.config.json
+```
+
+Edit the copied JSON with your identifiers and configure credentials for the
+provider you use. The local copy is ignored by Git.
+
+```sh
+export MOBILE_DEVELOPER_MCP_CONFIG_PATH="$PWD/mobile-developer-mcp.config.json"
+# For Google with a local service account only:
+export GOOGLE_APPLICATION_CREDENTIALS="/private/path/google-service-account.json"
+node dist/index.js
+```
+
+The process waits for MCP messages; it does not display a menu. Connect it to a
+client as described below. Use `Ctrl+C` to stop it.
+
+**The server does not load `.env` automatically.** `.env.example` is a reference:
+export variables or pass them through the client configuration. There is no
+published npm package or `npx` installation.
+
+## App configuration
+
+```json
+{
+  "apps": [
+    {
+      "id": "my-mobile-app",
+      "googlePlay": {
+        "packageName": "com.example.app",
+        "tracks": ["production", "beta"],
+        "reportingBucket": "pubsite_prod_rev_0123456789"
+      },
+      "appStore": {
+        "appId": "1234567890",
+        "vendorNumber": "12345678"
+      }
+    }
+  ]
+}
+```
+
+| Field | Meaning |
+| --- | --- |
+| `id` | Unique local alias: lowercase letters, numbers, and hyphens. Tools receive this value as `appId`. |
+| `googlePlay.packageName` | The actual Android application identifier. |
+| `googlePlay.tracks` | Tracks allowed for queries; they must exist in your account. |
+| `googlePlay.reportingBucket` | Optional private statistics bucket, used for installations. |
+| `appStore.appId` | Numeric App Store Connect ID, distinct from the local alias. |
+| `appStore.vendorNumber` | Optional vendor number required for Sales reports. |
+
+Remove `googlePlay` or `appStore` if you use only one store. Up to 100 apps are
+supported, each with at least one provider. **Pass the configuration path through
+`MOBILE_DEVELOPER_MCP_CONFIG_PATH`**: without it, the app list is empty even if
+the example configuration file exists. Relative paths resolve from the process
+working directory; prefer absolute paths in desktop clients.
+
+### Google Play
+
+Prepare an identity authorized for your apps in Play Console and enable the
+APIs you need. The MCP server does not create identities or assign permissions.
+Use `GOOGLE_APPLICATION_CREDENTIALS` with a service account file outside the
+repository, or Application Default Credentials (ADC) available to the process.
+
+| Resource | API / scope | Required access |
+| --- | --- | --- |
+| Releases and reviews | Android Publisher / `androidpublisher` | App access; reviews require **Reply to reviews** in Play Console, even though this server only reads them. |
+| Crashes and ANRs | Play Developer Reporting / `playdeveloperreporting` | Access to the app's Android vitals data. |
+| Installations | Cloud Storage / `devstorage.read_only` | Object read access to the private Play reports bucket. |
+
+`GOOGLE_OAUTH_ACCESS_TOKEN` is also supported: a short-lived local token with
+the required scopes. It takes priority over ADC and **is not automatically
+renewed**. Do not put it in the app configuration JSON or an issue.
+
+The status tool checks environment variables only. It may report `false` when
+ADC is configured through another mechanism. A `true` result does not confirm
+that a file exists, a token is valid, or the identity has permission.
+
+References: [Google Play API setup](https://developers.google.com/android-publisher/getting_started),
+[Play Reporting](https://developers.google.com/play/developer/reporting),
+[statistics reports](https://support.google.com/googleplay/android-developer/answer/6135870).
+
+### App Store Connect
+
+Create an API key with access to the required resources, keep the `.p8` file
+outside the repository, and configure:
+
+```sh
+export APP_STORE_CONNECT_KEY_PATH="/private/path/AuthKey_EXAMPLE.p8"
+export APP_STORE_CONNECT_KEY_ID="EXAMPLEKEY"
+export APP_STORE_CONNECT_ISSUER_ID="00000000-0000-0000-0000-000000000000"
+```
+
+The server signs ES256 JWTs locally. Sales and Analytics may use different
+roles: the `APP_STORE_CONNECT_SALES_*` and `APP_STORE_CONNECT_ANALYTICS_*`
+prefixes support `KEY_PATH`, `KEY_ID`, and `ISSUER_ID`. Each missing value falls
+back to the primary credential; configure all three when changing accounts.
+Sales requires `vendorNumber`. Analytics only inspects existing resources:
+report setup and generation must happen outside the MCP server.
+
+Roles, availability, and privacy restrictions may differ by resource.
+Reference: [App Store Connect API](https://developer.apple.com/documentation/appstoreconnectapi/).
+
+## Connect an MCP client
+
+This uses the common `mcpServers` format; the exact format and file location
+depend on the client. Use absolute paths. If `node` is not on the client's PATH,
+replace `command` with the absolute path to the executable.
 
 ```json
 {
   "mcpServers": {
     "mobile-developer": {
       "command": "node",
-      "args": ["/ruta/al/mobile-developer-mcp/dist/index.js"],
+      "args": ["/path/to/mobile-developer-mcp/dist/index.js"],
       "env": {
-        "MOBILE_DEVELOPER_MCP_CONFIG_PATH": "/ruta/privada/apps.json"
+        "MOBILE_DEVELOPER_MCP_CONFIG_PATH": "/private/path/apps.json",
+        "GOOGLE_APPLICATION_CREDENTIALS": "/private/path/google-service-account.json",
+        "APP_STORE_CONNECT_KEY_PATH": "/private/path/AuthKey_EXAMPLE.p8",
+        "APP_STORE_CONNECT_KEY_ID": "EXAMPLEKEY",
+        "APP_STORE_CONNECT_ISSUER_ID": "00000000-0000-0000-0000-000000000000"
       }
     }
   }
 }
 ```
 
-## Herramientas
+Remove variables for providers you do not use and reload the client. Start with
+`mobile_developer_list_apps` and `mobile_developer_provider_status`; neither
+contacts the stores.
 
-- `mobile_developer_list_apps`: lista identificadores y configuración no
-  secreta de apps, con filtro opcional `provider` y `limit` entre 1 y 100.
-- `mobile_developer_provider_status`: indica solamente si las credenciales de
-  cada proveedor están presentes localmente, sin mostrar valores.
-- `mobile_developer_google_play_releases`: devuelve nombre, códigos de versión
-  y estado de los releases no obsoletos de un track configurado. Google devuelve
-  hasta 20: no es historial completo ni incluye el porcentaje de rollout.
-- `mobile_developer_google_play_reviews`: devuelve puntuación, texto, fecha y
-  versión cuando existen, con cursor, tamaño de página (1–100) e idioma de
-  traducción opcional. Solo están disponibles comentarios creados o modificados
-  durante la última semana; las respuestas del desarrollador nunca se exponen.
-- `mobile_developer_google_play_vital_issues`: consulta por GET los issues
-  agrupados de crashes/ANR de Android vitals, con período UTC alineado a la hora,
-  filtros opcionales por `versionCodes` y `types`, y cursor/límite acotados.
-- `mobile_developer_google_play_installation_metrics`: lee únicamente objetos
-  CSV existentes de `stats/installs` en el bucket privado configurado. Devuelve
-  observaciones diarias con el nombre exacto de la columna, unidad, fuente,
-  período y dimensiones; nunca suma métricas de stock como instalaciones nuevas.
-- `mobile_developer_app_store_versions`, `_builds` y `_reviews`: consultan
-  versiones, builds/estado y customer reviews de App Store Connect con filtros
-  y paginación acotada.
-- `mobile_developer_app_store_diagnostic_signatures`: consulta diagnósticos
-  disponibles por build; no es un inventario completo de crashes de producción.
-- `mobile_developer_app_store_sales_downloads`: lee un reporte diario existente
-  de Sales and Trends, solo para filas de apps (excluye compras internas).
-- `mobile_developer_app_store_analytics_existing`: inspecciona solicitudes,
-  instancias y segmentos Analytics existentes; nunca crea/reanuda reportes ni
-  revela URLs firmadas de descarga.
+Example assistant requests:
 
-Las futuras herramientas comparten contratos para `source`, `period` (`start`
-y `end` ISO), `unit`, límites y paginación. Los errores de dominio son
-estructurados y usan `CONFIGURATION`, `AUTHORIZATION`, `NOT_FOUND` o
-`PROVIDER`; los detalles sensibles se redactan.
+- "List configured apps and credential status."
+- "Show releases for `my-mobile-app` on the `production` track."
+- "Fetch 20 recent Google Play reviews for `my-mobile-app`."
+- "Query ANR issues for version 42 from November 1 to November 2 in UTC."
 
-Google Play usa ADC o una cuenta de servicio indicada por
-`GOOGLE_APPLICATION_CREDENTIALS`, con scopes separados por recurso:
-`androidpublisher`, `playdeveloperreporting` y, para reportes privados,
-`devstorage.read_only`. La cuenta necesita permiso **Reply to reviews** para
-consultar reviews, acceso de lectura adecuado a Android vitals y acceso de
-lector de objetos al bucket privado. Los reportes ausentes, permisos insuficientes
-y desfases de publicación no se convierten en ceros. Los archivos comprimidos
-gzip y CSV UTF-8/UTF-16 con BOM se aceptan hasta 5 MiB por objeto; se leen como
-máximo 13 objetos mensuales. El servidor reserva stdout para JSON-RPC/MCP. Cualquier diagnóstico va a
-stderr. No existen herramientas de publicación, edición de tracks, respuestas
-a reviews ni generación de reportes.
+Example MCP tool call, not a terminal command:
 
-App Store Connect usa un JWT ES256 firmado localmente con
-`APP_STORE_CONNECT_KEY_PATH`, `APP_STORE_CONNECT_KEY_ID` y
-`APP_STORE_CONNECT_ISSUER_ID`. Puede configurar los tríos `..._SALES_*` o
-`..._ANALYTICS_*` cuando los permisos estén en roles distintos; campos ausentes
-heredan la credencial principal. Sales and Trends requiere `vendorNumber` por
-app. Descargas mayores de 5 MiB se rechazan; informes ausentes, permisos,
-latencia de publicación o privacidad no se representan como cero.
+```json
+{
+  "name": "mobile_developer_google_play_releases",
+  "arguments": { "appId": "my-mobile-app", "track": "production" }
+}
+```
 
-## Desarrollo
+For Vitals, use UTC timestamps aligned to an hour, for example
+`start: "2026-11-01T00:00:00Z"`, `end: "2026-11-02T00:00:00Z"`.
+Installation statistics use `YYYY-MM-DD` dates for `start` and `end`.
+
+## Tools
+
+All `limit` values accept 1–100 (default: 50). Pass `nextCursor` as `cursor`
+in the next call with the same filters. Pages are not traversed automatically.
+The `buildId` and `instanceId` values come from Apple.
+
+| Tool | Main inputs | Output and limits |
+| --- | --- | --- |
+| `mobile_developer_list_apps` | `provider?`, `limit?` | Non-secret local configuration. |
+| `mobile_developer_provider_status` | None | Credential presence, without verifying access. |
+| `mobile_developer_google_play_releases` | `appId`, `track` | Up to 20 non-obsolete releases; no complete history or rollout percentage. |
+| `mobile_developer_google_play_reviews` | `appId`, pagination, `translationLanguage?` | Reviews created/modified within the last week; no developer replies. |
+| `mobile_developer_google_play_vital_issues` | `appId`, `start`, `end`, `versionCodes?`, `types?`, pagination | Grouped issues; types: `CRASH`, `ANR`, `NON_FATAL`. |
+| `mobile_developer_google_play_installation_metrics` | `appId`, `start`, `end`, `dimension?` | Daily GCS CSV observations; up to 13 monthly objects. |
+| `mobile_developer_app_store_versions` | `appId`, pagination, `platform?` | Versions and release state. |
+| `mobile_developer_app_store_builds` | `appId`, pagination, `version?` | Builds and processing state. |
+| `mobile_developer_app_store_reviews` | `appId`, pagination, `territory?` | Customer reviews without replies. |
+| `mobile_developer_app_store_diagnostic_signatures` | `buildId`, pagination | Available diagnostics for a build; not all crashes. |
+| `mobile_developer_app_store_sales_downloads` | `appId`, `date` | App rows from the vendor's daily report; up to 5 MiB. |
+| `mobile_developer_app_store_analytics_existing` | `appId`, pagination, `instanceId?` | Existing requests, reports, instances, or segment IDs. |
+
+## V1 limitations and status
+
+- Tests verify the protocol and simulated responses. Contracts and permissions
+  may need adjustments when validated against live accounts.
+- Apple Sales selects a vendor using the local alias, but **does not filter
+  rows by `appStore.appId`**. Inspect dimensions to identify the app; do not sum
+  the entire report as a single app's total. The parser only includes
+  `Product Type Identifier` equal to `1` and distinguishes redownloads only
+  with `Order Type`; it does not cover all product types.
+- Analytics lists metadata and IDs; it does not download or analyze segments.
+  It does not create or resume requests, or expose signed download URLs.
+- Google installation metrics preserve columns, dimensions, and daily
+  observations without summing stocks. They are not equivalent to unique people
+  or Apple's Sales metrics.
+- The 5 MiB report limit applies to downloaded files; it does not guarantee
+  a memory limit during decompression.
+- Missing reports are not zero: they may yield `reportAvailable: false` or
+  empty collections. Availability, retention, and privacy affect the data.
+  Android vitals and Apple diagnostics have different coverage.
+- GCS reads only use known monthly object names; the bucket is not listed.
+
+## Troubleshooting
+
+| Symptom | What to check |
+| --- | --- |
+| Empty app list | `MOBILE_DEVELOPER_MCP_CONFIG_PATH` and the JSON file path. |
+| `CONFIGURATION` | Unreadable files, invalid schema, missing Apple key, or invalid timestamps. |
+| `AUTHORIZATION` | Expired token, scopes, roles, or bucket permissions. |
+| `NOT_FOUND` | Unconfigured alias/track, incorrect ID, or missing resource. |
+| `PROVIDER` | Network, quota, unexpected response, or report size limit. |
+| Client cannot connect | Run `npm run build`; check `node`/`dist/index.js` paths and client stderr logs. |
+| Terminal waits without output | Expected: the server waits for an MCP client over stdin. |
+
+Do not paste tokens, keys, private reports, or unreviewed logs into issues or
+pull requests. See [SECURITY.md](SECURITY.md) for vulnerability reporting.
+
+## Development and contributions
 
 ```sh
+npm ci
 npm run build
 npm test
 ```
 
-## Preparación externa y permisos mínimos
+`npm test` compiles and runs Vitest: configuration, errors, JWTs, fixtures for
+both providers, and stdio integration. No live credentials are required.
+CI runs the suite on Linux with Node 22, 24, and 26.
 
-Las siguientes acciones ocurren fuera del MCP, en las consolas de los
-proveedores. El servidor no puede ni intenta crear apps, activar APIs, generar
-reportes, modificar roles, publicar artefactos ni escribir objetos.
+```text
+src/index.ts       Stdio entry point
+src/server.ts      MCP tool registration
+src/config.ts      Validated configuration
+src/contracts.ts   Shared schemas
+src/errors.ts      Sanitized errors
+src/providers/     Google and Apple adapters
+test/              Unit and integration tests
+.memory/           Technical project context
+```
 
-| Proveedor | Preparación y permisos de menor privilegio | Preparación manual y disponibilidad |
-| --- | --- | --- |
-| Google Play | Vincular ADC/cuenta de servicio a Play Console con lectura de la app. Reviews exige **Reply to reviews**; Vitals requiere Play Developer Reporting y scope `playdeveloperreporting`. | Configurar `packageName` y tracks. Las reseñas y reportes pueden tardar en aparecer. |
-| Google Statistics | Otorgar `Storage Object Viewer` al bucket privado y scope `devstorage.read_only`. | Preparar/localizar el bucket de informes Play, configurar `reportingBucket` y esperar el CSV mensual. El MCP no lista, crea ni escribe objetos. |
-| App Store Connect | Crear una API key `.p8` local y asignar el rol de lectura mínimo para versiones, builds, reviews y diagnósticos. Configurar `KEY_PATH`, `KEY_ID`, `ISSUER_ID` y el App Store app ID. | Mantener la clave fuera de Git. Los roles distintos de Sales/Analytics pueden usar `APP_STORE_CONNECT_SALES_*` y `..._ANALYTICS_*`; los campos ausentes heredan la credencial principal. |
-| Apple Sales/Analytics | Conceder el rol de Sales and Trends y/o Analytics, y configurar `vendorNumber` para Sales. | Generar/publicar reportes y solicitudes Analytics en App Store Connect y esperar disponibilidad. El MCP solo lee reportes, instancias y segmentos existentes. |
+Read [CONTRIBUTING.md](CONTRIBUTING.md) to propose changes. All code, comments,
+documentation, and synthetic examples must be written in English. Repository
+agent instructions are in [AGENTS.md](AGENTS.md). V2 will evaluate additional
+resources; V1 remains read-only. Report bugs and proposals through
+[GitHub Issues](https://github.com/svlucero/mobile-developer-mcp/issues).
 
-Además de ADC o `GOOGLE_APPLICATION_CREDENTIALS`, se admite localmente un token
-OAuth de corta vida en `GOOGLE_OAUTH_ACCESS_TOKEN`; no lo guarde en el JSON de
-apps ni lo agregue a Git.
+## License
 
-## Catálogo de herramientas
-
-Todos los `limit` están acotados a 1–100 y los cursores son opacos. Las
-respuestas conservan fuente, unidad, período y/o paginación cuando corresponda.
-
-| Herramienta | Entradas | Salida | Límites y semántica |
-| --- | --- | --- | --- |
-| `mobile_developer_list_apps` | `provider?`, `limit?` | Apps y configuración no secreta | Máximo 100, puede truncar. |
-| `mobile_developer_provider_status` | — | Presencia booleana de credenciales | No valida permisos ni contacta proveedores. |
-| `mobile_developer_google_play_releases` | `appId`, `track` | Nombre, versionCodes, estado | Excluye obsoletos, máximo 20; sin historial completo ni rollout. |
-| `mobile_developer_google_play_reviews` | `appId`, `limit?`, `cursor?`, `translationLanguage?` | Comentarios de usuario, score, versión y fecha | Solo creados/modificados en la última semana; sin respuestas de desarrollador. |
-| `mobile_developer_google_play_vital_issues` | `appId`, `start`, `end`, `versionCodes?`, `types?`, paginación | Issues, conteo y usuarios distintos | UTC alineado a hora; no equiparable a diagnósticos Apple. |
-| `mobile_developer_google_play_installation_metrics` | `appId`, `start`, `end`, `dimension?` | Observaciones CSV diarias, columna exacta, entidad/tipo | Hasta 13 objetos mensuales y 5 MiB por objeto; no suma stocks. |
-| `mobile_developer_app_store_versions` | `appId`, `limit?`, `cursor?`, `platform?` | Versiones y estado | Paginación a 100. |
-| `mobile_developer_app_store_builds` | `appId`, `limit?`, `cursor?`, `version?` | Builds y processing state | Paginación a 100. |
-| `mobile_developer_app_store_reviews` | `appId`, `limit?`, `cursor?`, `territory?` | Customer reviews | Sin developer responses. |
-| `mobile_developer_app_store_diagnostic_signatures` | `buildId`, paginación | Firma, tipo, peso | No es inventario completo de crashes de producción. |
-| `mobile_developer_app_store_sales_downloads` | `appId`, `date` | Descargas de filas de apps | Reporte diario existente, 5 MiB; excluye IAP; separa redescargas solo con `Order Type`. |
-| `mobile_developer_app_store_analytics_existing` | `appId`, paginación, `instanceId?` | Solicitudes/reportes/instancias o IDs de segmentos | Solo existentes; sin URL firmada, creación ni reanudación. |
-
-## Ausencia de datos, retención y verificación
-
-- Ausencia no es cero: un CSV/reporte/instancia ausente devuelve colección vacía
-  o `reportAvailable: false`; permisos insuficientes producen `AUTHORIZATION`.
-- Reviews de Google solo cubre una ventana de una semana y releases no es
-  historial completo. Play reporting, buckets privados, Sales and Trends y
-  Analytics tienen latencia; privacidad, umbrales y roles pueden ocultar datos.
-- Las instalaciones Play preservan columna, entidad (events/devices/users) y
-  flujo/stock. Sales Apple cuenta producto app, no personas únicas. Diagnósticos
-  Apple y Vitals Android tienen coberturas y denominadores diferentes.
-- Errores `CONFIGURATION`, `AUTHORIZATION`, `NOT_FOUND` y `PROVIDER` se
-  sanitizan; nunca se devuelven claves, JWT, Bearer tokens ni URLs firmadas.
-
-`npm test` compila y ejecuta validación, sanitización, fixtures de adaptador y
-una integración MCP real por stdio con fixtures de Google Play y App Store
-Connect. La fixture rechaza métodos distintos de `GET`; las pruebas y una
-auditoría de fuentes cubren la ausencia de POST/PUT/PATCH/DELETE contra
-proveedores. No usa credenciales reales, por lo que no acredita permisos,
-cuentas, buckets ni reportes preparados. Un smoke test manual con credenciales
-locales debe limitarse a una consulta de lectura por proveedor e informar qué
-recursos y permisos respondieron realmente.
+[MIT](LICENSE), copyright 2026 svlucero. Store credentials, accounts, and data
+are not covered by this license; they remain subject to their providers'
+permissions and terms.

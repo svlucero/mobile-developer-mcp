@@ -1,15 +1,14 @@
 import { mkdtempSync, writeFileSync } from 'node:fs';
+import { generateKeyPairSync } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { describe, expect, it } from 'vitest';
 import { AppStoreAdapter, createAppStoreJwt } from '../src/providers/app-store.js';
 
-const fixtureKey = `-----BEGIN EC PRIVATE KEY-----
-MHcCAQEEIGul4YEmRvdRZxxnt9jTjTfzBj36LJfNdv1Hs9ptRWAOoAoGCCqGSM49
-AwEHoUQDQgAEciHMjmuhiVWjNnk8i4E+81mqIbdnqDb+Yn6horjIn9kfFfZV02m6
-kTP4atFEHnnOtGLo6i2ZEoVKMDaOlspi3w==
------END EC PRIVATE KEY-----`;
+// Ephemeral test-only material, generated without credentials from any account.
+const fixtureKey = generateKeyPairSync('ec', { namedCurve: 'prime256v1' })
+  .privateKey.export({ type: 'pkcs8', format: 'pem' });
 
 function environment() {
   const path = join(mkdtempSync(join(tmpdir(), 'apple-key-')), 'AuthKey_TEST.p8');

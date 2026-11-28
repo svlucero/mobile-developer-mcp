@@ -23,6 +23,8 @@ added by later issues.
 
 ## Conventions and constraints
 
+- All code, comments, documentation, examples, agent instructions, commits, and
+  pull request text must be written in English; see `AGENTS.md`.
 - TypeScript uses strict mode and ESM imports.
 - Keep MCP tools read-only. Provider adapters may acquire tokens but must never
   mutate store business resources.
