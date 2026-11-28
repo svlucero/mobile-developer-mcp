@@ -38,6 +38,13 @@ instalaciones/descargas, con adaptadores independientes por proveedor.
 Las pruebas de `test/` cubren carga de configuración, redacción, handshake y
 llamadas MCP reales por stdio con fixtures de ambos proveedores.
 
+## Distribución y colaboración
+
+Instalación desde Git y `npm ci`; `private: true` evita publicación accidental
+en npm. Licencia MIT en `LICENSE`. README documenta el uso; CONTRIBUTING y
+SECURITY describen colaboración y reportes privados. La CI de GitHub compila
+y prueba con Node 22/24/26, sin credenciales de las tiendas, y audita dependencias.
+
 ## Límites
 
 - Solo lectura de recursos de negocio; autenticación puede intercambiar tokens.
@@ -48,5 +55,7 @@ llamadas MCP reales por stdio con fixtures de ambos proveedores.
 - Conservar fuente, período, unidad, límites y paginación en los contratos.
 - Analytics no crea ni reanuda solicitudes de generación; si no hay instancias
   o segmentos, el usuario debe preparar el reporte en App Store Connect.
+- Sales selecciona `vendorNumber` desde la configuración local, pero no filtra
+  el reporte por el ID Apple de la app; las filas conservan sus dimensiones.
 
 Ver [convenciones](coding_standards.md) y [contratos](api_contracts.md).

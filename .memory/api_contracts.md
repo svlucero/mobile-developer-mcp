@@ -7,6 +7,11 @@
 de límite y truncamiento. `mobile_developer_provider_status` expone solamente
 booleanos de presencia de credenciales.
 
+`MOBILE_DEVELOPER_MCP_CONFIG_PATH` ausente produce una configuración vacía;
+no se busca automáticamente un archivo ni se carga `.env`. El alias local
+`id` es el `appId` de las herramientas y difiere del ID Apple configurado.
+El estado Google comprueba variables, no todas las formas de ADC ni permisos.
+
 `mobile_developer_google_play_releases` recibe un `appId` local y un `track`
 configurado y hace `GET /applications/{packageName}/tracks/{track}/releases`.
 Normaliza `ReleaseSummary.releaseName`, `activeArtifacts[].versionCode` y
@@ -73,10 +78,14 @@ ejecuta únicamente GET.
   lee Sales/Summary diario y conserva fuente, período y dimensiones. Solo toma
   `Product Type Identifier` `1` (apps), excluyendo IAP. Separa iniciales y
   redescargas solo si existe `Order Type`; si no, devuelve `downloads`.
+  El reporte se selecciona por `vendorNumber`, no se filtra por app Apple:
+  usar dimensiones para distinguir filas. El parser no cubre todos los tipos
+  de producto de Sales.
 - `mobile_developer_app_store_analytics_existing` lee solicitudes, reportes,
   instancias y segmentos ya existentes. Nunca crea/reanuda informes ni devuelve
   URLs firmadas. Sin recursos puede requerir preparación manual, permisos o
   esperar disponibilidad/privacidad; no devuelve cero.
+  Esta herramienta inspecciona metadatos e IDs; no descarga segmentos.
 
 Sales y Analytics pueden tener latencia, privacidad o roles distintos. Informes
 mayores de 5 MiB se rechazan. 401/403 son `AUTHORIZATION`, 404 es `NOT_FOUND`;

@@ -1,6 +1,9 @@
 # Convenciones
 
 - TypeScript/Node.js estricto y módulos ESM.
+- Node 22 o versiones desde 24, preferentemente LTS; tests con Vitest 4.1.12
+  o superior en la rama 4. Generar claves sintéticas durante las pruebas, sin
+  almacenar material PEM en el código.
 - El protocolo MCP usa exclusivamente stdout; logs y diagnósticos van a stderr.
 - Validar toda entrada externa en el borde; limitar paginación y volumen.
 - No versionar, registrar ni devolver secretos. Sanitizar los errores antes de
@@ -22,6 +25,8 @@
   `NOT_FOUND` o `PROVIDER` al convertir fallos de dominio a una respuesta MCP.
 - La configuración se lee desde la ruta en `MOBILE_DEVELOPER_MCP_CONFIG_PATH`;
   ejemplos sí se versionan, archivos reales y claves no.
+- `.env.example` solo documenta variables: no hay carga automática de `.env`.
+  Exportarlas o pasarlas en el entorno del cliente MCP; usar rutas absolutas.
 - Para App Store Connect, usar JWT ES256 de duración corta firmado desde una
   ruta local. Mantener GET, limitar informes a 5 MiB y omitir URLs de segmentos
   Analytics. Datos no disponibles no son cero; diagnostic signatures no son un
@@ -33,5 +38,10 @@ salientes. `npm test` compila y ejecuta Vitest; `npm run build` ejecuta el
 chequeo de tipos y genera `dist/`. Verificar la suite completa de la rama
 integrada antes de fusionar entregas dependientes. Usar mensajes de commit
 convencionales y acotados.
+
+Contribuciones bajo MIT; seguir CONTRIBUTING.md y SECURITY.md. La CI usa
+acciones fijadas por SHA y token de solo lectura, sin secretos de proveedores.
+Mantener ejemplos sintéticos y metadatos de licencia de package.json/lockfile
+consistentes; `private: true` es independiente de la visibilidad del repositorio.
 
 Ver [arquitectura](architecture.md) y [contratos](api_contracts.md).
