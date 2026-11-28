@@ -1,5 +1,4 @@
-node_modules/
-dist/
+/mobile-developer-mcp
 coverage/
 .env
 .env.*

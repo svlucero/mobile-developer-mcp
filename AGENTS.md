@@ -15,5 +15,5 @@ proper names, and actual provider or user data without translating them.
   tokens, but must not mutate store business resources.
 - Reserve stdout for the MCP protocol; write diagnostics to stderr.
 - Never commit or expose credentials, tokens, private reports, or signed URLs.
-- Run `npm test` for code changes. Update documentation and project memory to
+- Run `go test ./...` for code changes. Update documentation and project memory to
   reflect verified behavior; distinguish fixtures from live-account validation.

@@ -2,36 +2,26 @@
 
 ## Purpose
 
-Local, read-only MCP server for querying mobile-store business data. The initial
-server establishes the secure protocol boundary; provider-specific queries are
-added by later issues.
+Local, read-only MCP server for Google Play and App Store Connect operational
+data. It uses stdio and has no public network listener.
 
 ## Architecture
 
-- `src/`: TypeScript source, with shared contracts, configuration, provider
-  adapters, error handling, and the stdio MCP entry point.
-- `test/`: unit and stdio integration tests.
-- `.memory/`: durable architecture, convention, and API-contract context.
+- `cmd/mobile-developer-mcp/` contains the executable entry point.
+- `internal/mobile/` contains configuration validation, MCP registration,
+  provider adapters, report parsers, authentication, and tests.
+- `.memory/` stores durable project knowledge.
 
 ## Commands
 
-- `npm install` installs dependencies.
-- `npm run build` type-checks and compiles to `dist/`.
-- `npm test` runs the test suite.
-- `npm start` starts the server over stdio; diagnostic output is written only to
-  stderr.
+- `go test ./...` runs tests.
+- `go test -race ./...` checks concurrent execution.
+- `go vet ./...` performs static checks.
+- `go build ./cmd/mobile-developer-mcp` builds the stdio executable.
 
-## Conventions and constraints
+## Constraints
 
-- All code, comments, documentation, examples, agent instructions, commits, and
-  pull request text must be written in English; see `AGENTS.md`.
-- TypeScript uses strict mode and ESM imports.
-- Keep MCP tools read-only. Provider adapters may acquire tokens but must never
-  mutate store business resources.
-- Validate untrusted input at the MCP boundary. Return structured, sanitized
-  errors; never put secrets in protocol output or logs.
-- Provider integrations remain separate and optional: configuring one does not
-  require the other.
-- App Store Connect tokens are signed locally with ES256 keys; never return a
-  key, JWT, authorization header, or signed Analytics download URL. Apple tools
-  perform GET requests only, including existing Analytics resources.
+- Keep all project artifacts in English.
+- Keep V1 business operations read-only and reserve stdout for MCP JSON-RPC.
+- Validate MCP input, bound pagination/report sizes, and sanitize errors.
+- Never commit, log, or return credentials, JWTs, signed URLs, or private reports.
