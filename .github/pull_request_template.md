@@ -1,16 +1,17 @@
-## Problema y cambio
+## Problem and change
 
-<!-- Problema, comportamiento resultante e issue relacionado, si existe. -->
+<!-- Describe the problem, resulting behavior, and related issue, if any. -->
 
-## Verificación
+## Validation
 
-<!-- Comandos y resultados; distinguir fixtures de validación real. -->
+<!-- Commands and results; distinguish fixtures from live validation. -->
 
-- [ ] `npm test` pasa.
-- [ ] Documentación y `.memory/` actualizadas cuando corresponde.
-- [ ] Sin secretos ni datos reales en el diff o fixtures.
-- [ ] Las herramientas siguen siendo de solo lectura.
+- [ ] `npm test` passes.
+- [ ] Documentation and `.memory/` updated where applicable.
+- [ ] No secrets or actual account data in the diff or fixtures.
+- [ ] Tools remain read-only.
+- [ ] Code, comments, documentation, and examples are written in English.
 
-## Límites
+## Limitations
 
-<!-- Permisos, compatibilidad y limitaciones relevantes para la revisión. -->
+<!-- Permissions, compatibility, and limitations relevant to review. -->

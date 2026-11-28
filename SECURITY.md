@@ -1,37 +1,37 @@
-# Seguridad
+# Security
 
-## Reportar una vulnerabilidad
+## Report a vulnerability
 
-Usá [Report a vulnerability en GitHub](https://github.com/svlucero/mobile-developer-mcp/security/advisories/new)
-si está habilitado. Si no está disponible, contactá al mantenedor mediante un
-canal privado indicado en su [perfil](https://github.com/svlucero). Podés abrir
-un issue solicitando un canal privado, sin detalles de explotación, credenciales
-ni datos de cuentas. No hay plazo de respuesta garantizado.
+Use [Report a vulnerability on GitHub](https://github.com/svlucero/mobile-developer-mcp/security/advisories/new)
+if enabled. Otherwise, contact the maintainer through a private channel listed
+on their [profile](https://github.com/svlucero). You may open an issue requesting
+a private channel without including exploit details, credentials, or account
+data. There is no guaranteed response time.
 
-Incluí versión o commit, impacto y pasos reproducibles con datos sintéticos.
-No envíes claves ni reportes reales. Si una credencial se expuso, revocala o
-rotala: borrarla del archivo o último commit no la invalida ni elimina copias
-del historial.
+Include the affected version or commit, impact, and reproduction steps using
+synthetic data. Do not send keys or actual reports. If a credential is exposed,
+revoke or rotate it: deleting it from a file or the latest commit does not
+invalidate it or remove historical copies.
 
-## Estado y alcance
+## Status and scope
 
-El proyecto es experimental. Se mantiene el estado actual de `main`; no hay
-política de backports. Las pruebas con fixtures no constituyen una auditoría de
-seguridad ni validan permisos reales.
+The project is experimental. Only the current state of `main` is maintained;
+there is no backport policy. Fixture-based tests are not a security audit and
+do not validate live permissions.
 
-MCP usa stdio local; las consultas y autenticación requieren conexiones salientes
-a Google y Apple. Los datos privados que se consultan llegan al cliente MCP.
-Usá clientes y asistentes de confianza y evaluá cómo manejan esos datos.
+MCP uses local stdio; queries and authentication require outbound connections
+to Google and Apple. Queried private data reaches the MCP client. Use trusted
+clients and assistants and evaluate how they handle that data.
 
-Guardá credenciales fuera del repo y asigná permisos mínimos por recurso.
-Aunque el servidor solo consulta datos de negocio, algunos scopes o credenciales
-pueden permitir otras acciones en el proveedor. Los límites de descarga no
-garantizan límites de memoria al descomprimir reportes. No uses claves o archivos
-de origen desconocido.
+Keep credentials outside the repository and grant the minimum permissions per
+resource. Although the server only queries business data, some scopes or
+credentials may permit other provider operations. Download limits do not
+guarantee memory limits during report decompression. Do not use keys or files
+from untrusted sources.
 
-Los ejemplos contienen placeholders. `.gitignore` reduce inclusiones accidentales,
-pero no evita publicar archivos previamente versionados ni detecta todos los
-secretos. Revisá el diff y el historial antes de publicar.
+Examples contain placeholders. `.gitignore` reduces accidental inclusion, but
+does not prevent publishing previously tracked files or detect every secret.
+Review the diff and history before publishing.
 
-Los tests generan claves efímeras. Revisiones anteriores contienen una clave
-de fixture pública con IDs sintéticos; no debe reutilizarse como credencial.
+Tests generate ephemeral keys. Earlier revisions contain a public fixture key
+with synthetic IDs; it must never be reused as a credential.

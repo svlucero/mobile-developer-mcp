@@ -1,33 +1,37 @@
-# Contribuir
+# Contributing
 
-Se aceptan issues y pull requests en español o inglés. Para cambios grandes,
-describí primero el problema en un issue. Para documentación o bugs acotados,
-podés abrir directamente un PR.
+Write source code, identifiers, comments, docstrings, documentation, examples,
+commit messages, and pull request titles and descriptions in English. Keep
+synthetic fixtures in English; preserve actual provider data and API identifiers.
+See [AGENTS.md](AGENTS.md) for repository instructions.
 
-## Preparar el entorno
+For large changes, describe the problem in an issue first. Documentation fixes
+and small bug fixes can be submitted directly as pull requests.
 
-1. Hacé un fork y clonalo, o creá una rama si tenés acceso al repositorio.
-2. Usá Node LTS; la matriz de CI cubre 22, 24 y 26.
-3. Ejecutá `npm ci` y `npm test`. No necesitás credenciales reales.
-4. Hacé cambios enfocados y agregá pruebas para cambios de comportamiento.
+## Set up your environment
 
-## Convenciones
+1. Fork and clone the repository, or create a branch if you have write access.
+2. Use Node LTS; the CI matrix covers 22, 24, and 26.
+3. Run `npm ci` and `npm test`. No live credentials are required.
+4. Keep changes focused and add tests for behavior changes.
 
-- TypeScript estricto, ESM e imports locales con extensión `.js`.
-- Separar adaptadores por proveedor y validar entradas MCP.
-- Mantener V1 de solo lectura: sin publicación, respuestas a reviews, edición
-  de recursos ni generación de reportes.
-- stdout es exclusivamente del protocolo; diagnósticos por stderr.
-- Convertir fallos a errores sanitizados. No incluir claves, tokens, reportes
-  reales, nombres de clientes ni datos personales en código o fixtures.
-- No llamar cuentas reales desde tests o CI; usar fixtures sintéticas.
-- Mantener README y los tres documentos `.memory/` alineados con el código.
-- Usar commits descriptivos, por ejemplo `fix: handle missing review text`.
+## Conventions
 
-El intercambio de tokens de autenticación no autoriza escrituras de negocio.
-Para nuevas consultas, documentá permisos, fuente, período, límites y semántica.
+- Use strict TypeScript, ESM, and `.js` extensions for local imports.
+- Separate provider adapters and validate MCP inputs.
+- Keep V1 read-only: no publishing, review replies, resource editing, or report
+  generation.
+- Reserve stdout for the protocol; write diagnostics to stderr.
+- Convert failures to sanitized errors. Do not include keys, tokens, actual
+  reports, customer names, or personal data in code or fixtures.
+- Use synthetic fixtures, not live accounts, in tests and CI.
+- Keep README and all three `.memory/` documents aligned with the implementation.
+- Use descriptive commits, such as `fix: handle missing review text`.
 
-## Antes de abrir un PR
+Authentication token exchanges do not authorize business resource mutations.
+For new queries, document permissions, source, period, limits, and semantics.
+
+## Before opening a pull request
 
 ```sh
 npm run build
@@ -36,10 +40,11 @@ git diff --check
 git status --short
 ```
 
-Describí problema, comportamiento resultante, verificación y limitaciones.
-Distinguí fixtures de validación real, sin publicar datos de la cuenta.
-La CI debe pasar antes del merge. Las contribuciones aceptadas se distribuyen
-bajo la [licencia MIT](LICENSE).
+Describe the problem, resulting behavior, validation, and limitations. Distinguish
+fixtures from live validation without publishing account data. CI must pass
+before merging. Accepted contributions are distributed under the
+[MIT license](LICENSE).
 
-Para vulnerabilidades seguí [SECURITY.md](SECURITY.md), evitando issues públicos.
-Tratá a los demás con respeto y centrá las discusiones en los cambios técnicos.
+For vulnerabilities, follow [SECURITY.md](SECURITY.md) instead of opening public
+issues. Treat others respectfully and keep discussions focused on technical
+changes.
