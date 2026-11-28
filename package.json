@@ -3,9 +3,19 @@
   "version": "0.1.0",
   "private": true,
   "description": "Local read-only MCP server for mobile store business data",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/svlucero/mobile-developer-mcp.git"
+  },
+  "homepage": "https://github.com/svlucero/mobile-developer-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/svlucero/mobile-developer-mcp/issues"
+  },
+  "keywords": ["mcp", "google-play", "app-store-connect", "read-only"],
   "type": "module",
   "engines": {
-    "node": ">=18"
+    "node": "^22.0.0 || >=24.0.0"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -23,6 +33,6 @@
     "@types/node": "^22.15.3",
     "tsx": "^4.19.4",
     "typescript": "^5.8.3",
-    "vitest": "^3.1.3"
+    "vitest": "^4.1.12"
   }
 }
